@@ -141,7 +141,7 @@ button:hover { background: #005ecb; }
 
 <script>
 async function searchApp() {
-  const name = document.getElementById('appName').value.trim();
+  let name = document.getElementById('appName').value.trim();
   const country = document.getElementById('country').value;
   const resultsDiv = document.getElementById('results');
   const copyNote = document.getElementById('copyNote');
@@ -153,10 +153,16 @@ async function searchApp() {
     return;
   }
 
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(name)}&country=${country}&entity=software&limit=10`;
+  // Chuẩn hóa từ khóa để tránh lỗi API (loại bỏ dấu, viết thường)
+  const term = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=${country}&entity=software&limit=10`;
+
   try {
     const res = await fetch(url);
-    const data = await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const data = JSON.parse(text);
 
     if (!data.results || data.results.length === 0) {
       resultsDiv.innerHTML = "❌ Không tìm thấy ứng dụng nào trong khu vực này.";
@@ -172,7 +178,7 @@ async function searchApp() {
         <div class="app-info">
           <b style="color:#007aff">${app.trackName}</b> 
           <span style="color:#555">(v${app.version || 'N/A'})</span><br>
-          <span class="bundle" onclick="copyBundle('${app.bundleId}')">${app.bundleId}</span><br>
+          <span class="bundle" onclick="copyBundle('${app.bundleId || 'Không rõ'}')">${app.bundleId || 'Không rõ'}</span><br>
           <small>${app.sellerName || 'Không rõ'}</small><br>
           <small>Yêu cầu: iOS ${app.minimumOsVersion || 'Không rõ'} trở lên</small><br>
           <small>Cập nhật: ${app.currentVersionReleaseDate ? new Date(app.currentVersionReleaseDate).toLocaleDateString('vi-VN') : 'Không rõ'}</small><br>
@@ -182,27 +188,41 @@ async function searchApp() {
     `).join('');
 
   } catch (e) {
-    resultsDiv.innerHTML = "⚠️ Lỗi khi truy vấn API.";
+    resultsDiv.innerHTML = `⚠️ Lỗi khi truy vấn API (${e.message}).`;
     console.error(e);
   }
 }
 
 function copyBundle(bundle) {
-  navigator.clipboard.writeText(bundle);
-  const temp = document.createElement('div');
-  temp.textContent = "✅ Đã sao chép: " + bundle;
-  temp.style.position = "fixed";
-  temp.style.bottom = "20px";
-  temp.style.left = "50%";
-  temp.style.transform = "translateX(-50%)";
-  temp.style.background = "rgba(0,0,0,0.8)";
-  temp.style.color = "white";
-  temp.style.padding = "8px 14px";
-  temp.style.borderRadius = "10px";
-  temp.style.fontSize = "14px";
-  temp.style.zIndex = "9999";
-  document.body.appendChild(temp);
-  setTimeout(() => temp.remove(), 1500);
+  if (!bundle || bundle === 'Không rõ') return;
+  const showCopied = (text) => {
+    const temp = document.createElement('div');
+    temp.textContent = "✅ Đã sao chép: " + text;
+    temp.style.position = "fixed";
+    temp.style.bottom = "20px";
+    temp.style.left = "50%";
+    temp.style.transform = "translateX(-50%)";
+    temp.style.background = "rgba(0,0,0,0.8)";
+    temp.style.color = "white";
+    temp.style.padding = "8px 14px";
+    temp.style.borderRadius = "10px";
+    temp.style.fontSize = "14px";
+    temp.style.zIndex = "9999";
+    document.body.appendChild(temp);
+    setTimeout(() => temp.remove(), 1500);
+  };
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(bundle).then(() => showCopied(bundle));
+  } else {
+    const input = document.createElement('input');
+    input.value = bundle;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    showCopied(bundle);
+  }
 }
 
 function goHome(event) {
