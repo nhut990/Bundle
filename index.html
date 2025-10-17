@@ -22,6 +22,7 @@ body {
   border-radius: 16px;
   box-shadow: 0 3px 10px rgba(0,0,0,0.1);
   text-align: center;
+  position: relative;
 }
 h2 {
   margin: 0 0 15px;
@@ -98,6 +99,20 @@ button:hover { background: #005ecb; }
   background: #e5e5e5;
 }
 #results { margin-top: 20px; text-align: left; }
+
+.footer {
+  text-align: center;
+  margin-top: 25px;
+  font-size: 14px;
+}
+.footer a {
+  text-decoration: none;
+  color: #007aff;
+  font-weight: 500;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
 </style>
 </head>
 <body>
@@ -119,6 +134,10 @@ button:hover { background: #005ecb; }
       💡 Ấn vào <b>Bundle ID</b> để sao chép
     </div>
     <div id="results"></div>
+
+    <div class="footer">
+      ⬅️ <a href="https://nhut990.github.io">Quay về trang chủ</a>
+    </div>
   </div>
 
 <script>
