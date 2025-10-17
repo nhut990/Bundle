@@ -153,9 +153,8 @@ async function searchApp() {
     return;
   }
 
-  // Chuẩn hóa từ khóa để tránh lỗi API (loại bỏ dấu, viết thường)
+  // Chuẩn hóa từ khóa để tránh lỗi API (bỏ dấu, viết thường)
   const term = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=${country}&entity=software&limit=10`;
 
   try {
@@ -169,8 +168,26 @@ async function searchApp() {
       return;
     }
 
+    // Nếu bundleId bị thiếu, gọi lookup API để lấy chính xác hơn
+    const apps = await Promise.all(
+      data.results.map(async (app) => {
+        if (!app.bundleId && app.trackId) {
+          try {
+            const lookupRes = await fetch(`https://itunes.apple.com/lookup?id=${app.trackId}`);
+            const lookupData = await lookupRes.json();
+            if (lookupData.results && lookupData.results[0]?.bundleId) {
+              app.bundleId = lookupData.results[0].bundleId;
+            }
+          } catch (e) {
+            console.warn("Lỗi khi lấy bundleId phụ:", e);
+          }
+        }
+        return app;
+      })
+    );
+
     copyNote.style.display = "block";
-    resultsDiv.innerHTML = data.results.map(app => `
+    resultsDiv.innerHTML = apps.map(app => `
       <div class="app">
         <a href="${app.trackViewUrl}" target="_blank" title="Mở trong App Store">
           <img src="${app.artworkUrl100}" alt="${app.trackName}">
