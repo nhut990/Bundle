@@ -47,7 +47,6 @@ input, select, button {
   margin-top: 10px;
   text-align: center;
 }
-input::placeholder { color: #aaa; }
 select {
   background: #f8f8f8;
   text-align-last: center;
@@ -65,7 +64,8 @@ button:hover { background: #005ecb; }
   display: none;
   font-size: 13px;
   color: #666;
-  margin-top: 8px;
+  margin-top: 10px;
+  line-height: 1.5;
 }
 .app {
   display: flex;
@@ -73,10 +73,14 @@ button:hover { background: #005ecb; }
   border-bottom: 1px solid #eee;
   padding: 12px 0;
 }
-.app img {
+.app a img {
   width: 60px; height: 60px;
   border-radius: 12px;
   margin-right: 12px;
+  transition: 0.2s;
+}
+.app a img:hover {
+  transform: scale(1.05);
 }
 .app-info { text-align: left; flex: 1; }
 .bundle {
@@ -110,7 +114,10 @@ button:hover { background: #005ecb; }
       <option value="RU">🇷🇺 Nga</option>
     </select>
     <button onclick="searchApp()">Tìm kiếm</button>
-    <div class="note" id="copyNote">💡 Ấn vào <b>Bundle ID</b> để sao chép</div>
+    <div class="note" id="copyNote">
+      💡 Ấn vào <b>Icon</b> để mở App Store<br>
+      💡 Ấn vào <b>Bundle ID</b> để sao chép
+    </div>
     <div id="results"></div>
   </div>
 
@@ -142,7 +149,9 @@ async function searchApp() {
 
     resultsDiv.innerHTML = data.results.map(app => `
       <div class="app">
-        <img src="${app.artworkUrl100}" alt="">
+        <a href="${app.trackViewUrl}" target="_blank" title="Mở trong App Store">
+          <img src="${app.artworkUrl100}" alt="${app.trackName}">
+        </a>
         <div class="app-info">
           <b style="color:#007aff">${app.trackName}</b> <small>(v${app.version || 'N/A'})</small><br>
           <span class="bundle" onclick="copyBundle('${app.bundleId}')">${app.bundleId}</span><br>
