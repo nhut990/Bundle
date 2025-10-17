@@ -170,7 +170,8 @@ async function searchApp() {
           <img src="${app.artworkUrl100}" alt="${app.trackName}">
         </a>
         <div class="app-info">
-          <b style="color:#007aff">${app.trackName}</b> <small>(v${app.version || 'N/A'})</small><br>
+          <b style="color:#007aff">${app.trackName}</b> 
+          <span style="color:#555">(v${app.version || 'N/A'})</span><br>
           <span class="bundle" onclick="copyBundle('${app.bundleId}')">${app.bundleId}</span><br>
           <small>${app.sellerName || 'Không rõ'}</small><br>
           <small>Yêu cầu: iOS ${app.minimumOsVersion || 'Không rõ'} trở lên</small><br>
