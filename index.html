@@ -22,7 +22,6 @@ body {
   border-radius: 16px;
   box-shadow: 0 3px 10px rgba(0,0,0,0.1);
   text-align: center;
-  position: relative;
 }
 h2 {
   margin: 0 0 15px;
@@ -34,8 +33,7 @@ h2 {
   gap: 8px;
 }
 h2 img {
-  width: 22px;
-  height: 22px;
+  width: 22px; height: 22px;
 }
 input, select, button {
   width: 100%;
@@ -48,10 +46,7 @@ input, select, button {
   margin-top: 10px;
   text-align: center;
 }
-select {
-  background: #f8f8f8;
-  text-align-last: center;
-}
+select { background: #f8f8f8; text-align-last: center; }
 button {
   background: #007aff;
   color: white;
@@ -80,9 +75,7 @@ button:hover { background: #005ecb; }
   margin-right: 12px;
   transition: 0.2s;
 }
-.app a img:hover {
-  transform: scale(1.05);
-}
+.app a img:hover { transform: scale(1.05); }
 .app-info { text-align: left; flex: 1; }
 .bundle {
   background: #f1f1f1;
@@ -93,11 +86,8 @@ button:hover { background: #005ecb; }
   user-select: all;
   display: inline-block;
   color: #007aff;
-  text-decoration: none;
 }
-.bundle:hover {
-  background: #e5e5e5;
-}
+.bundle:hover { background: #e5e5e5; }
 #results { margin-top: 20px; text-align: left; }
 
 .footer {
@@ -109,10 +99,17 @@ button:hover { background: #005ecb; }
   text-decoration: none;
   color: #007aff;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.3s ease;
 }
-.footer a:hover {
-  text-decoration: underline;
+.footer a:hover { color: #005ecb; }
+.arrow {
+  display: inline-block;
+  transition: transform 0.4s ease, opacity 0.4s ease;
 }
+.footer a:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
@@ -136,7 +133,9 @@ button:hover { background: #005ecb; }
     <div id="results"></div>
 
     <div class="footer">
-      ⬅️ <a href="https://nhut990.github.io">Quay về trang chủ</a>
+      <a href="#" id="homeLink" onclick="goHome(event)">
+        <span class="arrow" id="arrow">⬅️</span> Quay về trang chủ
+      </a>
     </div>
   </div>
 
@@ -165,7 +164,6 @@ async function searchApp() {
     }
 
     copyNote.style.display = "block";
-
     resultsDiv.innerHTML = data.results.map(app => `
       <div class="app">
         <a href="${app.trackViewUrl}" target="_blank" title="Mở trong App Store">
@@ -204,6 +202,16 @@ function copyBundle(bundle) {
   temp.style.zIndex = "9999";
   document.body.appendChild(temp);
   setTimeout(() => temp.remove(), 1500);
+}
+
+function goHome(event) {
+  event.preventDefault();
+  const arrow = document.getElementById('arrow');
+  arrow.style.transform = "translateX(-50px)";
+  arrow.style.opacity = "0";
+  setTimeout(() => {
+    window.location.href = "https://nhut990.github.io";
+  }, 400);
 }
 </script>
 </body>
