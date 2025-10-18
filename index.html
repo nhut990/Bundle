@@ -74,6 +74,8 @@ button:hover { background: #005ecb; }
   border-radius: 12px;
   margin-right: 12px;
   transition: 0.2s;
+  object-fit: cover;
+  background: #f3f3f3;
 }
 .app a img:hover { transform: scale(1.05); }
 .app-info { text-align: left; flex: 1; }
@@ -86,6 +88,12 @@ button:hover { background: #005ecb; }
   user-select: all;
   display: inline-block;
   color: #007aff;
+}
+.bundle.disabled {
+  cursor: default;
+  opacity: 0.6;
+  user-select: text;
+  color: #666;
 }
 .bundle:hover { background: #e5e5e5; }
 #results { margin-top: 20px; text-align: left; }
@@ -110,6 +118,12 @@ button:hover { background: #005ecb; }
   transition: transform 0.4s ease, opacity 0.4s ease;
 }
 .footer a:active { transform: scale(0.97); }
+
+/* Small screens tweak */
+@media (max-width: 420px) {
+  .container { padding: 18px 14px 22px; border-radius: 12px; }
+  h2 { font-size: 20px; }
+}
 </style>
 </head>
 <body>
@@ -125,7 +139,7 @@ button:hover { background: #005ecb; }
       <option value="CN">🇨🇳 Trung Quốc</option>
       <option value="RU">🇷🇺 Nga</option>
     </select>
-    <button onclick="searchApp()">Tìm kiếm</button>
+    <button id="searchBtn">Tìm kiếm</button>
     <div class="note" id="copyNote">
       💡 Ấn vào <b>Icon</b> để mở App Store<br>
       💡 Ấn vào <b>Bundle ID</b> để sao chép
@@ -133,124 +147,349 @@ button:hover { background: #005ecb; }
     <div id="results"></div>
 
     <div class="footer">
-      <a href="#" id="homeLink" onclick="goHome(event)">
+      <a href="#" id="homeLink">
         <span class="arrow" id="arrow">⬅️</span> Quay về trang chủ
       </a>
     </div>
   </div>
 
 <script>
-async function searchApp() {
-  let name = document.getElementById('appName').value.trim();
-  const country = document.getElementById('country').value;
-  const resultsDiv = document.getElementById('results');
-  const copyNote = document.getElementById('copyNote');
-  resultsDiv.innerHTML = "🔍 Đang tìm...";
-  copyNote.style.display = "none";
+(function () {
+  var searchBtn = document.getElementById('searchBtn');
+  var appNameInput = document.getElementById('appName');
+  var countrySelect = document.getElementById('country');
+  var resultsDiv = document.getElementById('results');
+  var copyNote = document.getElementById('copyNote');
+  var homeLink = document.getElementById('homeLink');
+  var arrow = document.getElementById('arrow');
 
-  if (!name) {
-    resultsDiv.innerHTML = "⚠️ Vui lòng nhập tên ứng dụng.";
-    return;
-  }
+  // Placeholder SVG for missing artwork
+  var placeholderSvg = encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
+    '<rect fill="%23eee" width="100" height="100"/>' +
+    '<text x="50" y="55" font-size="12" text-anchor="middle" fill="%23999">No Image</text>' +
+    '</svg>'
+  );
+  var placeholderUrl = 'data:image/svg+xml;charset=UTF-8,' + placeholderSvg;
 
-  // Chuẩn hóa từ khóa để tránh lỗi API (bỏ dấu, viết thường)
-  const term = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=${country}&entity=software&limit=10`;
+  searchBtn.addEventListener('click', searchApp);
+  appNameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') searchApp();
+  });
 
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const data = JSON.parse(text);
-
-    if (!data.results || data.results.length === 0) {
-      resultsDiv.innerHTML = "❌ Không tìm thấy ứng dụng nào trong khu vực này.";
-      return;
+  homeLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    try {
+      if (arrow) {
+        arrow.style.transform = "translateX(-50px)";
+        arrow.style.opacity = "0";
+      }
+      setTimeout(function () { window.location.href = "https://nhut990.github.io"; }, 400);
+    } catch (err) {
+      window.location.href = "https://nhut990.github.io";
     }
+  });
 
-    // Nếu bundleId bị thiếu, gọi lookup API để lấy chính xác hơn
-    const apps = await Promise.all(
-      data.results.map(async (app) => {
-        if (!app.bundleId && app.trackId) {
-          try {
-            const lookupRes = await fetch(`https://itunes.apple.com/lookup?id=${app.trackId}`);
-            const lookupData = await lookupRes.json();
-            if (lookupData.results && lookupData.results[0]?.bundleId) {
-              app.bundleId = lookupData.results[0].bundleId;
-            }
-          } catch (e) {
-            console.warn("Lỗi khi lấy bundleId phụ:", e);
+  // Fetch with fallbacks:
+  // 1) native fetch -> res.json()
+  // 2) XHR GET
+  // 3) JSONP (itunes supports callback=)
+  function fetchWithFallback(url, timeoutMs) {
+    timeoutMs = timeoutMs || 10000;
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+
+      function doResolve(data) { if (!settled) { settled = true; resolve(data); } }
+      function doReject(err) { if (!settled) { settled = true; reject(err); } }
+
+      // Try native fetch first if available
+      if (window.fetch) {
+        var didTimeout = false;
+        var timer = setTimeout(function () {
+          didTimeout = true;
+        }, timeoutMs);
+
+        window.fetch(url).then(function (res) {
+          clearTimeout(timer);
+          if (didTimeout) {
+            // timed out, fallback to next method
+            tryXHR();
+            return;
           }
+          if (!res.ok) {
+            // Try XHR/JSONP fallback
+            tryXHR();
+            return;
+          }
+          return res.json().then(doResolve).catch(function () { tryXHR(); });
+        }).catch(function () {
+          clearTimeout(timer);
+          tryXHR();
+        });
+      } else {
+        tryXHR();
+      }
+
+      // XHR fallback
+      function tryXHR() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.timeout = timeoutMs;
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                var data = JSON.parse(xhr.responseText);
+                doResolve(data);
+              } catch (e) {
+                // parse error -> JSONP fallback
+                tryJSONP();
+              }
+            } else {
+              // status error -> JSONP fallback
+              tryJSONP();
+            }
+          }
+        };
+        xhr.ontimeout = function () { tryJSONP(); };
+        xhr.onerror = function () { tryJSONP(); };
+        try {
+          xhr.send();
+        } catch (e) {
+          tryJSONP();
         }
-        return app;
-      })
-    );
+      }
 
-    copyNote.style.display = "block";
-    resultsDiv.innerHTML = apps.map(app => `
-      <div class="app">
-        <a href="${app.trackViewUrl}" target="_blank" title="Mở trong App Store">
-          <img src="${app.artworkUrl100}" alt="${app.trackName}">
-        </a>
-        <div class="app-info">
-          <b style="color:#007aff">${app.trackName}</b> 
-          <span style="color:#555">(v${app.version || 'N/A'})</span><br>
-          <span class="bundle" onclick="copyBundle('${app.bundleId || 'Không rõ'}')">${app.bundleId || 'Không rõ'}</span><br>
-          <small>${app.sellerName || 'Không rõ'}</small><br>
-          <small>Yêu cầu: iOS ${app.minimumOsVersion || 'Không rõ'} trở lên</small><br>
-          <small>Cập nhật: ${app.currentVersionReleaseDate ? new Date(app.currentVersionReleaseDate).toLocaleDateString('vi-VN') : 'Không rõ'}</small><br>
-          <small>${app.formattedPrice || 'Free'}</small>
-        </div>
-      </div>
-    `).join('');
+      // JSONP fallback (uses callback parameter)
+      function tryJSONP() {
+        var callbackName = 'itunes_cb_' + Math.floor(Math.random() * 1000000);
+        var script = document.createElement('script');
+        var timedOut = false;
+        var timer = setTimeout(function () {
+          timedOut = true;
+          cleanup();
+          doReject(new Error('JSONP timeout'));
+        }, timeoutMs);
 
-  } catch (e) {
-    resultsDiv.innerHTML = `⚠️ Lỗi khi truy vấn API (${e.message}).`;
-    console.error(e);
+        window[callbackName] = function (data) {
+          if (timedOut) return;
+          cleanup();
+          doResolve(data);
+        };
+
+        function cleanup() {
+          clearTimeout(timer);
+          try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        // append callback param (itunes supports callback)
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        script.src = url + sep + 'callback=' + callbackName;
+        script.onerror = function () {
+          cleanup();
+          doReject(new Error('JSONP load failed'));
+        };
+        document.head.appendChild(script);
+      }
+    });
   }
-}
 
-function copyBundle(bundle) {
-  if (!bundle || bundle === 'Không rõ') return;
-  const showCopied = (text) => {
-    const temp = document.createElement('div');
-    temp.textContent = "✅ Đã sao chép: " + text;
-    temp.style.position = "fixed";
-    temp.style.bottom = "20px";
-    temp.style.left = "50%";
-    temp.style.transform = "translateX(-50%)";
-    temp.style.background = "rgba(0,0,0,0.8)";
-    temp.style.color = "white";
-    temp.style.padding = "8px 14px";
-    temp.style.borderRadius = "10px";
-    temp.style.fontSize = "14px";
-    temp.style.zIndex = "9999";
-    document.body.appendChild(temp);
-    setTimeout(() => temp.remove(), 1500);
-  };
+  function searchApp() {
+    try {
+      var name = (appNameInput.value || '').trim();
+      var country = countrySelect.value;
+      resultsDiv.innerHTML = '🔍 Đang tìm...';
+      copyNote.style.display = 'none';
 
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(bundle).then(() => showCopied(bundle));
-  } else {
-    const input = document.createElement('input');
-    input.value = bundle;
+      if (!name) {
+        resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
+        return;
+      }
+
+      // Nếu trình duyệt hỗ trợ normalize thì dùng, nếu không thì dùng lowercased raw string
+      var term;
+      if (typeof String.prototype.normalize === 'function') {
+        term = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      } else {
+        term = name.toLowerCase();
+      }
+
+      var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
+                '&country=' + encodeURIComponent(country) + '&entity=software&limit=10';
+
+      fetchWithFallback(url, 10000).then(function (data) {
+        if (!data || !data.results || data.results.length === 0) {
+          resultsDiv.innerHTML = '❌ Không tìm thấy ứng dụng nào trong khu vực này.';
+          return;
+        }
+
+        // Ensure we try lookup for bundleId if missing
+        var results = data.results;
+        var lookupPromises = results.map(function (app) {
+          if ((!app.bundleId || app.bundleId === '') && app.trackId) {
+            var lookupUrl = 'https://itunes.apple.com/lookup?id=' + encodeURIComponent(app.trackId);
+            return fetchWithFallback(lookupUrl, 8000).then(function (lookupData) {
+              if (lookupData && lookupData.results && lookupData.results[0] && lookupData.results[0].bundleId) {
+                app.bundleId = lookupData.results[0].bundleId;
+              }
+              return app;
+            }).catch(function () { return app; });
+          } else {
+            return Promise.resolve(app);
+          }
+        });
+
+        Promise.all(lookupPromises).then(function (apps) {
+          renderResults(apps);
+        }).catch(function (err) {
+          // Even if lookup fails, render initial results
+          renderResults(results);
+        });
+
+      }).catch(function (err) {
+        console.error(err);
+        resultsDiv.innerHTML = '⚠️ Lỗi khi truy vấn API (' + (err && err.message ? err.message : 'Load failed.') + ').';
+      });
+    } catch (err) {
+      console.error('Unexpected error in searchApp', err);
+      resultsDiv.innerHTML = '⚠️ Lỗi nội bộ, vui lòng thử lại.';
+    }
+  }
+
+  function renderResults(apps) {
+    resultsDiv.innerHTML = '';
+    copyNote.style.display = 'block';
+
+    apps.forEach(function (app) {
+      var appEl = document.createElement('div');
+      appEl.className = 'app';
+
+      var link = document.createElement('a');
+      link.href = app.trackViewUrl || '#';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = 'Mở trong App Store';
+
+      var img = document.createElement('img');
+      img.src = app.artworkUrl100 || placeholderUrl;
+      img.alt = app.trackName || 'App';
+      img.addEventListener('error', function () { this.src = placeholderUrl; });
+
+      link.appendChild(img);
+      appEl.appendChild(link);
+
+      var info = document.createElement('div');
+      info.className = 'app-info';
+
+      var title = document.createElement('div');
+      var b = document.createElement('b');
+      b.style.color = '#007aff';
+      b.textContent = app.trackName || 'Không rõ';
+      title.appendChild(b);
+
+      var versionSpan = document.createElement('span');
+      versionSpan.style.color = '#555';
+      versionSpan.style.marginLeft = '6px';
+      versionSpan.textContent = '(v' + (app.version || app.versionString || 'N/A') + ')';
+      title.appendChild(versionSpan);
+
+      info.appendChild(title);
+
+      var bundleLine = document.createElement('div');
+      var bundleSpan = document.createElement('span');
+      bundleSpan.className = 'bundle';
+      if (app.bundleId) {
+        bundleSpan.textContent = app.bundleId;
+        bundleSpan.addEventListener('click', function () { copyBundle(app.bundleId); });
+      } else {
+        bundleSpan.textContent = 'Không rõ';
+        bundleSpan.className += ' disabled';
+      }
+      bundleLine.appendChild(bundleSpan);
+      info.appendChild(bundleLine);
+
+      var seller = document.createElement('div');
+      seller.innerHTML = '<small>' + escapeHtml(app.sellerName || 'Không rõ') + '</small>';
+      info.appendChild(seller);
+
+      var iosReq = document.createElement('div');
+      iosReq.innerHTML = '<small>Yêu cầu: ' + escapeHtml(app.minimumOsVersion || 'Không rõ') + ' trở lên</small>';
+      info.appendChild(iosReq);
+
+      var updated = document.createElement('div');
+      var dateText = app.currentVersionReleaseDate ? new Date(app.currentVersionReleaseDate).toLocaleDateString('vi-VN') : 'Không rõ';
+      updated.innerHTML = '<small>Cập nhật: ' + escapeHtml(dateText) + '</small>';
+      info.appendChild(updated);
+
+      var price = document.createElement('div');
+      price.innerHTML = '<small>' + escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : 'Free')) + '</small>';
+      info.appendChild(price);
+
+      appEl.appendChild(info);
+      resultsDiv.appendChild(appEl);
+    });
+  }
+
+  // Copy to clipboard with fallback
+  function copyBundle(bundle) {
+    if (!bundle) return;
+    var showCopied = function (text) {
+      var temp = document.createElement('div');
+      temp.textContent = '✅ Đã sao chép: ' + text;
+      temp.style.position = 'fixed';
+      temp.style.bottom = '20px';
+      temp.style.left = '50%';
+      temp.style.transform = 'translateX(-50%)';
+      temp.style.background = 'rgba(0,0,0,0.8)';
+      temp.style.color = 'white';
+      temp.style.padding = '8px 14px';
+      temp.style.borderRadius = '10px';
+      temp.style.fontSize = '14px';
+      temp.style.zIndex = '9999';
+      document.body.appendChild(temp);
+      setTimeout(function () { temp.remove(); }, 1500);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(bundle).then(function () { showCopied(bundle); }).catch(function () { fallbackCopy(bundle, showCopied); });
+    } else {
+      fallbackCopy(bundle, showCopied);
+    }
+  }
+
+  function fallbackCopy(text, cb) {
+    var input = document.createElement('textarea');
+    input.value = text;
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
     document.body.appendChild(input);
     input.select();
-    document.execCommand('copy');
+    try {
+      document.execCommand('copy');
+      if (cb) cb(text);
+    } catch (e) {
+      console.error('Copy fallback failed', e);
+    }
     document.body.removeChild(input);
-    showCopied(bundle);
   }
-}
 
-function goHome(event) {
-  event.preventDefault();
-  const arrow = document.getElementById('arrow');
-  arrow.style.transform = "translateX(-50px)";
-  arrow.style.opacity = "0";
-  setTimeout(() => {
-    window.location.href = "https://nhut990.github.io";
-  }, 400);
-}
+  function escapeHtml(str) {
+    if (str === null || typeof str === 'undefined') return '';
+    return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+      return ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '/': '&#x2F;',
+        '`': '&#x60;',
+        '=': '&#x3D;'
+      })[s];
+    });
+  }
+})();
 </script>
 </body>
 </html>
