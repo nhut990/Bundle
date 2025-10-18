@@ -13,6 +13,7 @@ body {
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
+  flex-direction: column;
 }
 .container {
   width: 100%;
@@ -22,6 +23,7 @@ body {
   border-radius: 16px;
   box-shadow: 0 3px 10px rgba(0,0,0,0.1);
   text-align: center;
+  align-self: center;
 }
 h2 {
   margin: 0 0 15px;
@@ -119,6 +121,15 @@ button:hover { background: #005ecb; }
 }
 .footer a:active { transform: scale(0.97); }
 
+/* Site credit at page bottom */
+.site-credit {
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+  margin-top: 12px;
+  align-self: center;
+}
+
 /* Small screens tweak */
 @media (max-width: 420px) {
   .container { padding: 18px 14px 22px; border-radius: 12px; }
@@ -152,6 +163,9 @@ button:hover { background: #005ecb; }
       </a>
     </div>
   </div>
+
+  <!-- Thông tin về trang web (site credit) -->
+  <div class="site-credit">Created by Minh Nhut</div>
 
 <script>
 (function () {
