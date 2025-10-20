@@ -21,6 +21,11 @@
       padding: 10px;
       font-size: 16px;
     }
+    select {
+      padding: 10px;
+      font-size: 16px;
+      margin-left: 8px;
+    }
     button {
       padding: 10px 20px;
       font-size: 16px;
@@ -49,6 +54,12 @@
     a:hover {
       text-decoration: underline;
     }
+    .error {
+      color: red;
+    }
+    .loading {
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -58,49 +69,78 @@
       type="text"
       id="appLink"
       placeholder="ví dụ https://apps.apple.com/vn/app/youtube/id544007664?l=vi"
+      oninput="clearResult()"
     />
+    <select id="iconQuality">
+      <option value="artworkUrl512">Cao (512x512)</option>
+      <option value="artworkUrl100">Trung bình (100x100)</option>
+      <option value="artworkUrl60">Thấp (~60x60)</option>
+    </select>
   </div>
   <button onclick="getAppIcon()">Lấy icon</button>
   <div id="result"></div>
 
   <script>
+    function clearResult() {
+      document.getElementById("result").innerHTML = "";
+    }
+
     async function getAppIcon() {
       const link = document.getElementById("appLink").value.trim();
+      const quality = document.getElementById("iconQuality").value;
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = "";
 
+      // Kiểm tra định dạng link
       const match = link.match(/id(\d+)/);
-      if (!link.includes("apps.apple.com") || !match) {
-        resultDiv.innerHTML = "<p style='color:red;'>❌ Link không hợp lệ hoặc không chứa ID ứng dụng.</p>";
+      if (!/^https?:\/\/apps\.apple\.com\/.+\/app\/.+\/id\d+/.test(link) || !match) {
+        resultDiv.innerHTML = "<p class='error'>❌ Link không hợp lệ hoặc không chứa ID ứng dụng.</p>";
         return;
       }
 
       const appId = match[1];
       const apiUrl = `https://itunes.apple.com/lookup?id=${appId}&country=VN`;
 
-      resultDiv.innerHTML = "<p>⏳ Đang tải dữ liệu ứng dụng...</p>";
+      resultDiv.innerHTML = "<p class='loading'>⏳ Đang tải dữ liệu ứng dụng...</p>";
 
       try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error("Không thể kết nối đến API");
 
         const data = await response.json();
-        if (data.resultCount === 0) {
-          resultDiv.innerHTML = "<p style='color:red;'>❌ Không tìm thấy ứng dụng.</p>";
+        if (!data || data.resultCount === 0 || !data.results[0]) {
+          resultDiv.innerHTML = "<p class='error'>❌ Không tìm thấy ứng dụng.</p>";
           return;
         }
 
         const app = data.results[0];
-        const iconUrl = app.artworkUrl512;
+        const icons = {
+          artworkUrl512: app.artworkUrl512,
+          artworkUrl100: app.artworkUrl100,
+          artworkUrl60: app.artworkUrl60
+        };
+        const trackName = app.trackName || "Ứng dụng không có tên";
+        const iconUrl = icons[quality];
+
+        if (!iconUrl) {
+          resultDiv.innerHTML = `<p class='error'>❌ Ứng dụng không có icon với chất lượng này.</p>`;
+          return;
+        }
+
+        let label = "";
+        if (quality === "artworkUrl512") label = "Cao (512x512)";
+        else if (quality === "artworkUrl100") label = "Trung bình (100x100)";
+        else if (quality === "artworkUrl60") label = "Thấp (~60x60)";
 
         resultDiv.innerHTML = `
-          <p><strong>${app.trackName}</strong></p>
+          <p><strong>${trackName}</strong></p>
+          <p>Chất lượng: <b>${label}</b></p>
           <img src="${iconUrl}" alt="App Icon">
-          <br><a href="${iconUrl}" download>📥 Tải icon</a>
+          <br><a href="${iconUrl}" download>📥 Tải icon (${label})</a>
         `;
       } catch (error) {
         console.error("Lỗi:", error);
-        resultDiv.innerHTML = "<p style='color:red;'>❌ Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.</p>";
+        resultDiv.innerHTML = "<p class='error'>❌ Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.</p>";
       }
     }
   </script>
