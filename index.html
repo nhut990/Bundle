@@ -167,7 +167,6 @@ button:hover { background: #005ecb; }
     </div>
   </div>
 
-  <!-- Thông tin về trang web (site credit) -->
   <div class="site-credit">Created by Minh Nhut</div>
 
 <script>
@@ -180,7 +179,6 @@ button:hover { background: #005ecb; }
   var homeLink = document.getElementById('homeLink');
   var arrow = document.getElementById('arrow');
 
-  // Placeholder SVG for missing artwork
   var placeholderSvg = encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
     '<rect fill="%23eee" width="100" height="100"/>' +
@@ -196,182 +194,80 @@ button:hover { background: #005ecb; }
 
   homeLink.addEventListener('click', function (e) {
     e.preventDefault();
-    try {
-      if (arrow) {
-        arrow.style.transform = "translateX(-50px)";
-        arrow.style.opacity = "0";
-      }
-      setTimeout(function () { window.location.href = "https://nhut990.github.io"; }, 400);
-    } catch (err) {
-      window.location.href = "https://nhut990.github.io";
+    if (arrow) {
+      arrow.style.transform = "translateX(-50px)";
+      arrow.style.opacity = "0";
     }
+    setTimeout(function () { window.location.href = "https://nhut990.github.io"; }, 400);
   });
 
-  // Fetch with fallbacks:
-  // 1) native fetch -> res.json()
-  // 2) XHR GET
-  // 3) JSONP (itunes supports callback=)
   function fetchWithFallback(url, timeoutMs) {
     timeoutMs = timeoutMs || 10000;
     return new Promise(function (resolve, reject) {
       var settled = false;
+      function done(ok, data) { if (!settled) { settled = true; ok ? resolve(data) : reject(data); } }
 
-      function doResolve(data) { if (!settled) { settled = true; resolve(data); } }
-      function doReject(err) { if (!settled) { settled = true; reject(err); } }
-
-      // Try native fetch first if available
       if (window.fetch) {
-        var didTimeout = false;
-        var timer = setTimeout(function () {
-          didTimeout = true;
-        }, timeoutMs);
+        var timer = setTimeout(() => done(false, new Error("Timeout")), timeoutMs);
+        fetch(url)
+          .then(r => { clearTimeout(timer); return r.ok ? r.json() : Promise.reject(); })
+          .then(d => done(true, d))
+          .catch(() => tryXHR());
+      } else tryXHR();
 
-        window.fetch(url).then(function (res) {
-          clearTimeout(timer);
-          if (didTimeout) {
-            // timed out, fallback to next method
-            tryXHR();
-            return;
-          }
-          if (!res.ok) {
-            // Try XHR/JSONP fallback
-            tryXHR();
-            return;
-          }
-          return res.json().then(doResolve).catch(function () { tryXHR(); });
-        }).catch(function () {
-          clearTimeout(timer);
-          tryXHR();
-        });
-      } else {
-        tryXHR();
-      }
-
-      // XHR fallback
       function tryXHR() {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.timeout = timeoutMs;
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                var data = JSON.parse(xhr.responseText);
-                doResolve(data);
-              } catch (e) {
-                // parse error -> JSONP fallback
-                tryJSONP();
-              }
-            } else {
-              // status error -> JSONP fallback
-              tryJSONP();
-            }
-          }
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { done(true, JSON.parse(xhr.responseText)); }
+            catch { tryJSONP(); }
+          } else tryJSONP();
         };
-        xhr.ontimeout = function () { tryJSONP(); };
-        xhr.onerror = function () { tryJSONP(); };
-        try {
-          xhr.send();
-        } catch (e) {
-          tryJSONP();
-        }
+        xhr.onerror = xhr.ontimeout = () => tryJSONP();
+        xhr.send();
       }
 
-      // JSONP fallback (uses callback parameter)
       function tryJSONP() {
-        var callbackName = 'itunes_cb_' + Math.floor(Math.random() * 1000000);
-        var script = document.createElement('script');
-        var timedOut = false;
-        var timer = setTimeout(function () {
-          timedOut = true;
-          cleanup();
-          doReject(new Error('JSONP timeout'));
-        }, timeoutMs);
-
-        window[callbackName] = function (data) {
-          if (timedOut) return;
-          cleanup();
-          doResolve(data);
-        };
-
-        function cleanup() {
+        var cb = 'itunes_cb_' + Math.floor(Math.random() * 1000000);
+        var s = document.createElement('script');
+        var timer = setTimeout(() => cleanup(false, new Error("Timeout")), timeoutMs);
+        window[cb] = d => cleanup(true, d);
+        function cleanup(ok, d) {
           clearTimeout(timer);
-          try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
-          if (script.parentNode) script.parentNode.removeChild(script);
+          delete window[cb];
+          s.remove();
+          done(ok, d);
         }
-
-        // append callback param (itunes supports callback)
-        var sep = url.indexOf('?') === -1 ? '?' : '&';
-        script.src = url + sep + 'callback=' + callbackName;
-        script.onerror = function () {
-          cleanup();
-          doReject(new Error('JSONP load failed'));
-        };
-        document.head.appendChild(script);
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+        s.onerror = () => cleanup(false, new Error("Load failed"));
+        document.head.appendChild(s);
       }
     });
   }
 
   function searchApp() {
-    try {
-      var name = (appNameInput.value || '').trim();
-      var country = countrySelect.value;
-      resultsDiv.innerHTML = '🔍 Đang tìm...';
-      copyNote.style.display = 'none';
+    var name = (appNameInput.value || '').trim();
+    var country = countrySelect.value;
+    resultsDiv.innerHTML = '🔍 Đang tìm...';
+    copyNote.style.display = 'none';
+    if (!name) return resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
 
-      if (!name) {
-        resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
-        return;
-      }
+    var term = typeof String.prototype.normalize === 'function'
+      ? name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      : name.toLowerCase();
 
-      // Nếu trình duyệt hỗ trợ normalize thì dùng, nếu không thì dùng lowercased raw string
-      var term;
-      if (typeof String.prototype.normalize === 'function') {
-        term = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      } else {
-        term = name.toLowerCase();
-      }
+    var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
+              '&country=' + encodeURIComponent(country) + '&entity=software&limit=10';
 
-      var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
-                '&country=' + encodeURIComponent(country) + '&entity=software&limit=10';
-
-      fetchWithFallback(url, 10000).then(function (data) {
-        if (!data || !data.results || data.results.length === 0) {
-          resultsDiv.innerHTML = '❌ Không tìm thấy ứng dụng nào trong khu vực này.';
-          return;
-        }
-
-        // Ensure we try lookup for bundleId if missing
-        var results = data.results;
-        var lookupPromises = results.map(function (app) {
-          if ((!app.bundleId || app.bundleId === '') && app.trackId) {
-            var lookupUrl = 'https://itunes.apple.com/lookup?id=' + encodeURIComponent(app.trackId);
-            return fetchWithFallback(lookupUrl, 8000).then(function (lookupData) {
-              if (lookupData && lookupData.results && lookupData.results[0] && lookupData.results[0].bundleId) {
-                app.bundleId = lookupData.results[0].bundleId;
-              }
-              return app;
-            }).catch(function () { return app; });
-          } else {
-            return Promise.resolve(app);
-          }
-        });
-
-        Promise.all(lookupPromises).then(function (apps) {
-          renderResults(apps);
-        }).catch(function (err) {
-          // Even if lookup fails, render initial results
-          renderResults(results);
-        });
-
-      }).catch(function (err) {
-        console.error(err);
-        resultsDiv.innerHTML = '⚠️ Lỗi khi truy vấn API (' + (err && err.message ? err.message : 'Load failed.') + ').';
-      });
-    } catch (err) {
-      console.error('Unexpected error in searchApp', err);
-      resultsDiv.innerHTML = '⚠️ Lỗi nội bộ, vui lòng thử lại.';
-    }
+    fetchWithFallback(url, 10000).then(data => {
+      if (!data.results || !data.results.length)
+        return resultsDiv.innerHTML = '❌ Không tìm thấy ứng dụng nào trong khu vực này.';
+      renderResults(data.results);
+    }).catch(err => {
+      resultsDiv.innerHTML = '⚠️ Lỗi khi truy vấn API (' + (err.message || 'Load failed.') + ').';
+    });
   }
 
   function renderResults(apps) {
@@ -391,7 +287,7 @@ button:hover { background: #005ecb; }
       var img = document.createElement('img');
       img.src = app.artworkUrl100 || placeholderUrl;
       img.alt = app.trackName || 'App';
-      img.addEventListener('error', function () { this.src = placeholderUrl; });
+      img.onerror = function () { this.src = placeholderUrl; };
 
       link.appendChild(img);
       appEl.appendChild(link);
@@ -410,7 +306,6 @@ button:hover { background: #005ecb; }
       versionSpan.style.marginLeft = '6px';
       versionSpan.textContent = '(v' + (app.version || app.versionString || 'N/A') + ')';
       title.appendChild(versionSpan);
-
       info.appendChild(title);
 
       var bundleLine = document.createElement('div');
@@ -418,7 +313,7 @@ button:hover { background: #005ecb; }
       bundleSpan.className = 'bundle';
       if (app.bundleId) {
         bundleSpan.textContent = app.bundleId;
-        bundleSpan.addEventListener('click', function () { copyBundle(app.bundleId); });
+        bundleSpan.onclick = function () { copyBundle(app.bundleId); };
       } else {
         bundleSpan.textContent = 'Không rõ';
         bundleSpan.className += ' disabled';
@@ -443,12 +338,19 @@ button:hover { background: #005ecb; }
       price.innerHTML = '<small>' + escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : 'Free')) + '</small>';
       info.appendChild(price);
 
+      // ✅ Thêm phần hiển thị kích cỡ
+      if (app.fileSizeBytes) {
+        var sizeMB = (parseInt(app.fileSizeBytes, 10) / (1024 * 1024)).toFixed(1);
+        var size = document.createElement('div');
+        size.innerHTML = '<small>Kích cỡ: ' + sizeMB + ' MB</small>';
+        info.appendChild(size);
+      }
+
       appEl.appendChild(info);
       resultsDiv.appendChild(appEl);
     });
   }
 
-  // Copy to clipboard with fallback
   function copyBundle(bundle) {
     if (!bundle) return;
     var showCopied = function (text) {
@@ -465,14 +367,13 @@ button:hover { background: #005ecb; }
       temp.style.fontSize = '14px';
       temp.style.zIndex = '9999';
       document.body.appendChild(temp);
-      setTimeout(function () { temp.remove(); }, 1500);
+      setTimeout(() => temp.remove(), 1500);
     };
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(bundle).then(function () { showCopied(bundle); }).catch(function () { fallbackCopy(bundle, showCopied); });
-    } else {
-      fallbackCopy(bundle, showCopied);
-    }
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(bundle).then(() => showCopied(bundle))
+      .catch(() => fallbackCopy(bundle, showCopied));
+    else fallbackCopy(bundle, showCopied);
   }
 
   function fallbackCopy(text, cb) {
@@ -484,27 +385,17 @@ button:hover { background: #005ecb; }
     input.select();
     try {
       document.execCommand('copy');
-      if (cb) cb(text);
-    } catch (e) {
-      console.error('Copy fallback failed', e);
-    }
+      cb(text);
+    } catch (e) { console.error('Copy fallback failed', e); }
     document.body.removeChild(input);
   }
 
   function escapeHtml(str) {
-    if (str === null || typeof str === 'undefined') return '';
-    return String(str).replace(/[&<>"'`=\/]/g, function (s) {
-      return ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-        '/': '&#x2F;',
-        '`': '&#x60;',
-        '=': '&#x3D;'
-      })[s];
-    });
+    if (!str) return '';
+    return String(str).replace(/[&<>"'`=\/]/g, s => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+    }[s]));
   }
 })();
 </script>
