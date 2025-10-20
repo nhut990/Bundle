@@ -8,15 +8,18 @@
       font-family: Arial, sans-serif;
       padding: 20px;
       background-color: #f9f9f9;
+      text-align: center;
     }
     h2 {
       color: #333;
+    }
+    .input-group {
+      margin-bottom: 15px;
     }
     input[type="text"] {
       width: 80%;
       padding: 10px;
       font-size: 16px;
-      margin-bottom: 10px;
     }
     button {
       padding: 10px 20px;
@@ -25,6 +28,7 @@
       color: white;
       border: none;
       cursor: pointer;
+      margin-top: 10px;
     }
     button:hover {
       background-color: #0056b3;
@@ -49,17 +53,22 @@
 </head>
 <body>
   <h2>Nhập link ứng dụng trên App Store</h2>
-  <input type="text" id="appLink" placeholder="https://apps.apple.com/vn/app/bodaplay-ai/id1641474610?l=vi">
+  <div class="input-group">
+    <input
+      type="text"
+      id="appLink"
+      placeholder="ví dụ https://apps.apple.com/vn/app/youtube/id544007664?l=vi"
+    />
+  </div>
   <button onclick="getAppIcon()">Lấy icon</button>
   <div id="result"></div>
 
   <script>
-    function getAppIcon() {
+    async function getAppIcon() {
       const link = document.getElementById("appLink").value.trim();
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = "";
 
-      // Kiểm tra định dạng link và trích xuất ID
       const match = link.match(/id(\d+)/);
       if (!link.includes("apps.apple.com") || !match) {
         resultDiv.innerHTML = "<p style='color:red;'>❌ Link không hợp lệ hoặc không chứa ID ứng dụng.</p>";
@@ -69,30 +78,30 @@
       const appId = match[1];
       const apiUrl = `https://itunes.apple.com/lookup?id=${appId}&country=VN`;
 
-      // Hiển thị trạng thái đang tải
       resultDiv.innerHTML = "<p>⏳ Đang tải dữ liệu ứng dụng...</p>";
 
-      fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-          if (data.resultCount === 0) {
-            resultDiv.innerHTML = "<p style='color:red;'>❌ Không tìm thấy ứng dụng.</p>";
-            return;
-          }
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Không thể kết nối đến API");
 
-          const app = data.results[0];
-          const iconUrl = app.artworkUrl512;
+        const data = await response.json();
+        if (data.resultCount === 0) {
+          resultDiv.innerHTML = "<p style='color:red;'>❌ Không tìm thấy ứng dụng.</p>";
+          return;
+        }
 
-          resultDiv.innerHTML = `
-            <p><strong>${app.trackName}</strong></p>
-            <img src="${iconUrl}" alt="App Icon">
-            <br><a href="${iconUrl}" download>📥 Tải icon</a>
-          `;
-        })
-        .catch(error => {
-          console.error("Lỗi:", error);
-          resultDiv.innerHTML = "<p style='color:red;'>❌ Đã xảy ra lỗi khi tải dữ liệu.</p>";
-        });
+        const app = data.results[0];
+        const iconUrl = app.artworkUrl512;
+
+        resultDiv.innerHTML = `
+          <p><strong>${app.trackName}</strong></p>
+          <img src="${iconUrl}" alt="App Icon">
+          <br><a href="${iconUrl}" download>📥 Tải icon</a>
+        `;
+      } catch (error) {
+        console.error("Lỗi:", error);
+        resultDiv.innerHTML = "<p style='color:red;'>❌ Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.</p>";
+      }
     }
   </script>
 </body>
