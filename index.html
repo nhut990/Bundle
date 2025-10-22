@@ -100,14 +100,6 @@ button:hover { background: #005ecb; }
 .bundle:hover { background: #e5e5e5; }
 #results { margin-top: 20px; text-align: left; }
 
-.short-desc {
-  display: block;
-  font-size: 14px;
-  color: #555;
-  margin: 5px 0 2px 0;
-  font-style: italic;
-}
-
 .footer {
   text-align: center;
   margin-top: 25px;
@@ -195,31 +187,6 @@ button:hover { background: #005ecb; }
   );
   var placeholderUrl = 'data:image/svg+xml;charset=UTF-8,' + placeholderSvg;
 
-  // Danh sách mô tả ngắn cho các app phổ biến
-  var SHORT_DESCS = {
-    "zalo": "Nhắn tin & gọi điện miễn phí.",
-    "facebook": "Mạng xã hội chia sẻ kết nối bạn bè.",
-    "youtube": "Xem video trực tuyến.",
-    "messenger": "Nhắn tin, gọi video miễn phí.",
-    "instagram": "Chia sẻ hình ảnh, mạng xã hội.",
-    "shopee": "Mua sắm trực tuyến.",
-    "tiktok": "Mạng xã hội video ngắn.",
-    "grab": "Đặt xe, giao đồ ăn.",
-    "gmail": "Quản lý và gửi nhận email.",
-    "mocha": "Nhắn tin, gọi điện, kết bạn.",
-    "viber": "Nhắn tin, gọi điện miễn phí.",
-    "telegram": "Nhắn tin bảo mật.",
-    "twitter": "Mạng xã hội chia sẻ ý kiến.",
-    "momo": "Ví điện tử, thanh toán di động.",
-    "spotify": "Nghe nhạc trực tuyến.",
-    "google maps": "Bản đồ, chỉ đường và định vị.",
-    "google search": "Tìm kiếm thông tin.",
-    "google": "Ứng dụng Google tổng hợp.",
-    "google drive": "Lưu trữ và chia sẻ tệp.",
-    "google photos": "Lưu trữ & chia sẻ ảnh.",
-    // Thêm các app phổ biến khác nếu muốn
-  };
-
   searchBtn.addEventListener('click', searchApp);
   appNameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') searchApp();
@@ -303,24 +270,6 @@ button:hover { background: #005ecb; }
     });
   }
 
-  function getShortDesc(appName, appDescription) {
-    if (!appName) return "Ứng dụng chưa có mô tả ngắn.";
-    var key = appName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    key = key.replace(/[^a-z0-9 ]/g, ''); // giữ lại khoảng trắng cho các tên như "google maps"
-    key = key.trim();
-    // Tìm trong danh sách mô tả ngắn
-    for (var k in SHORT_DESCS) {
-      if (key === k || key.includes(k)) return SHORT_DESCS[k];
-    }
-    // Nếu không có, lấy dòng đầu tiên từ description (nếu có), cắt ngắn 60 ký tự
-    if (appDescription) {
-      var firstSentence = appDescription.split('. ')[0];
-      if (firstSentence.length > 60) firstSentence = firstSentence.substring(0, 60) + "...";
-      return firstSentence;
-    }
-    return "Ứng dụng chưa có mô tả ngắn.";
-  }
-
   function renderResults(apps) {
     resultsDiv.innerHTML = '';
     copyNote.style.display = 'block';
@@ -359,12 +308,6 @@ button:hover { background: #005ecb; }
       title.appendChild(versionSpan);
       info.appendChild(title);
 
-      // Mô tả ngắn
-      var shortDesc = document.createElement('span');
-      shortDesc.className = 'short-desc';
-      shortDesc.textContent = getShortDesc(app.trackName, app.description);
-      info.appendChild(shortDesc);
-
       var bundleLine = document.createElement('div');
       var bundleSpan = document.createElement('span');
       bundleSpan.className = 'bundle';
@@ -395,7 +338,7 @@ button:hover { background: #005ecb; }
       price.innerHTML = '<small>' + escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : 'Free')) + '</small>';
       info.appendChild(price);
 
-      // Thêm phần hiển thị kích cỡ nếu có
+      // ✅ Thêm phần hiển thị kích cỡ
       if (app.fileSizeBytes) {
         var sizeMB = (parseInt(app.fileSizeBytes, 10) / (1024 * 1024)).toFixed(1);
         var size = document.createElement('div');
