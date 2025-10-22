@@ -187,94 +187,74 @@ button:hover { background: #005ecb; }
   );
   var placeholderUrl = 'data:image/svg+xml;charset=UTF-8,' + placeholderSvg;
 
-  searchBtn.addEventListener('click', searchApp);
-  appNameInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') searchApp();
-  });
+  searchBtn.onclick = searchApp;
+  appNameInput.onkeydown = function (e) {
+    e = e || window.event;
+    if (e.keyCode === 13) searchApp();
+  };
 
-  homeLink.addEventListener('click', function (e) {
+  homeLink.onclick = function (e) {
     e.preventDefault();
     if (arrow) {
       arrow.style.transform = "translateX(-50px)";
       arrow.style.opacity = "0";
     }
     setTimeout(function () { window.location.href = "https://nhut990.github.io"; }, 400);
-  });
-
-  function fetchWithFallback(url, timeoutMs) {
-    timeoutMs = timeoutMs || 10000;
-    return new Promise(function (resolve, reject) {
-      var settled = false;
-      function done(ok, data) { if (!settled) { settled = true; ok ? resolve(data) : reject(data); } }
-
-      if (window.fetch) {
-        var timer = setTimeout(() => done(false, new Error("Timeout")), timeoutMs);
-        fetch(url)
-          .then(r => { clearTimeout(timer); return r.ok ? r.json() : Promise.reject(); })
-          .then(d => done(true, d))
-          .catch(() => tryXHR());
-      } else tryXHR();
-
-      function tryXHR() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.timeout = timeoutMs;
-        xhr.onload = function () {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try { done(true, JSON.parse(xhr.responseText)); }
-            catch { tryJSONP(); }
-          } else tryJSONP();
-        };
-        xhr.onerror = xhr.ontimeout = () => tryJSONP();
-        xhr.send();
-      }
-
-      function tryJSONP() {
-        var cb = 'itunes_cb_' + Math.floor(Math.random() * 1000000);
-        var s = document.createElement('script');
-        var timer = setTimeout(() => cleanup(false, new Error("Timeout")), timeoutMs);
-        window[cb] = d => cleanup(true, d);
-        function cleanup(ok, d) {
-          clearTimeout(timer);
-          delete window[cb];
-          s.remove();
-          done(ok, d);
-        }
-        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
-        s.onerror = () => cleanup(false, new Error("Load failed"));
-        document.head.appendChild(s);
-      }
-    });
-  }
+  };
 
   function searchApp() {
     var name = (appNameInput.value || '').trim();
     var country = countrySelect.value;
     resultsDiv.innerHTML = '🔍 Đang tìm...';
     copyNote.style.display = 'none';
-    if (!name) return resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
+    if (!name) {
+      resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
+      return;
+    }
 
-    var term = typeof String.prototype.normalize === 'function'
-      ? name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      : name.toLowerCase();
+    // Xử lý loại bỏ dấu tiếng Việt cho iOS cũ
+    var term = removeDiacritics(name).toLowerCase();
 
     var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
               '&country=' + encodeURIComponent(country) + '&entity=software&limit=10';
 
-    fetchWithFallback(url, 10000).then(data => {
-      if (!data.results || !data.results.length)
-        return resultsDiv.innerHTML = '❌ Không tìm thấy ứng dụng nào trong khu vực này.';
-      renderResults(data.results);
-    }).catch(err => {
-      resultsDiv.innerHTML = '⚠️ Lỗi khi truy vấn API (' + (err.message || 'Load failed.') + ').';
+    getJSON(url, function (err, data) {
+      if (err || !data || !data.results || !data.results.length) {
+        resultsDiv.innerHTML = '❌ Không tìm thấy ứng dụng nào trong khu vực này.';
+      } else {
+        renderResults(data.results);
+      }
     });
+  }
+
+  // XMLHttpRequest đơn giản cho ES5
+  function getJSON(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            callback(null, data);
+          } catch (e) {
+            callback(e, null);
+          }
+        } else {
+          callback(new Error('Kết nối lỗi'), null);
+        }
+      }
+    };
+    xhr.onerror = function () { callback(new Error('Kết nối lỗi'), null); };
+    xhr.send();
   }
 
   function renderResults(apps) {
     resultsDiv.innerHTML = '';
     copyNote.style.display = 'block';
 
-    apps.forEach(function (app) {
+    for (var i = 0; i < apps.length; i++) {
+      var app = apps[i];
       var appEl = document.createElement('div');
       appEl.className = 'app';
 
@@ -313,7 +293,7 @@ button:hover { background: #005ecb; }
       bundleSpan.className = 'bundle';
       if (app.bundleId) {
         bundleSpan.textContent = app.bundleId;
-        bundleSpan.onclick = function () { copyBundle(app.bundleId); };
+        bundleSpan.onclick = function () { copyBundle(this.textContent); };
       } else {
         bundleSpan.textContent = 'Không rõ';
         bundleSpan.className += ' disabled';
@@ -330,15 +310,14 @@ button:hover { background: #005ecb; }
       info.appendChild(iosReq);
 
       var updated = document.createElement('div');
-      var dateText = app.currentVersionReleaseDate ? new Date(app.currentVersionReleaseDate).toLocaleDateString('vi-VN') : 'Không rõ';
+      var dateText = app.currentVersionReleaseDate ? formatDate(app.currentVersionReleaseDate) : 'Không rõ';
       updated.innerHTML = '<small>Cập nhật: ' + escapeHtml(dateText) + '</small>';
       info.appendChild(updated);
 
       var price = document.createElement('div');
-      price.innerHTML = '<small>' + escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : 'Free')) + '</small>';
+      price.innerHTML = '<small>' + escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : (app.price + ' ' + (app.currency || ''))) ) + '</small>';
       info.appendChild(price);
 
-      // ✅ Thêm phần hiển thị kích cỡ
       if (app.fileSizeBytes) {
         var sizeMB = (parseInt(app.fileSizeBytes, 10) / (1024 * 1024)).toFixed(1);
         var size = document.createElement('div');
@@ -348,54 +327,78 @@ button:hover { background: #005ecb; }
 
       appEl.appendChild(info);
       resultsDiv.appendChild(appEl);
-    });
+    }
   }
 
   function copyBundle(bundle) {
     if (!bundle) return;
-    var showCopied = function (text) {
-      var temp = document.createElement('div');
-      temp.textContent = '✅ Đã sao chép: ' + text;
-      temp.style.position = 'fixed';
-      temp.style.bottom = '20px';
-      temp.style.left = '50%';
-      temp.style.transform = 'translateX(-50%)';
-      temp.style.background = 'rgba(0,0,0,0.8)';
-      temp.style.color = 'white';
-      temp.style.padding = '8px 14px';
-      temp.style.borderRadius = '10px';
-      temp.style.fontSize = '14px';
-      temp.style.zIndex = '9999';
-      document.body.appendChild(temp);
-      setTimeout(() => temp.remove(), 1500);
-    };
-
-    if (navigator.clipboard && navigator.clipboard.writeText)
-      navigator.clipboard.writeText(bundle).then(() => showCopied(bundle))
-      .catch(() => fallbackCopy(bundle, showCopied));
-    else fallbackCopy(bundle, showCopied);
-  }
-
-  function fallbackCopy(text, cb) {
+    // iOS cũ không có Clipboard API, dùng execCommand truyền thống
     var input = document.createElement('textarea');
-    input.value = text;
+    input.value = bundle;
     input.style.position = 'fixed';
     input.style.left = '-9999px';
     document.body.appendChild(input);
     input.select();
     try {
       document.execCommand('copy');
-      cb(text);
-    } catch (e) { console.error('Copy fallback failed', e); }
+      showCopied(bundle);
+    } catch (e) {
+      showCopied('Lỗi khi sao chép');
+    }
     document.body.removeChild(input);
+  }
+
+  function showCopied(text) {
+    var temp = document.createElement('div');
+    temp.textContent = '✅ Đã sao chép: ' + text;
+    temp.style.position = 'fixed';
+    temp.style.bottom = '20px';
+    temp.style.left = '50%';
+    temp.style.transform = 'translateX(-50%)';
+    temp.style.background = 'rgba(0,0,0,0.8)';
+    temp.style.color = 'white';
+    temp.style.padding = '8px 14px';
+    temp.style.borderRadius = '10px';
+    temp.style.fontSize = '14px';
+    temp.style.zIndex = '9999';
+    document.body.appendChild(temp);
+    setTimeout(function () { temp.parentNode.removeChild(temp); }, 1500);
+  }
+
+  // Chuyển ngày về định dạng Việt Nam cho máy cũ (không dùng toLocaleDateString)
+  function formatDate(str) {
+    var d = new Date(str);
+    if (isNaN(d)) return 'Không rõ';
+    var day = d.getDate();
+    var month = d.getMonth() + 1;
+    var year = d.getFullYear();
+    return day + '/' + month + '/' + year;
+  }
+
+  // Xóa dấu tiếng Việt cho iOS 10
+  function removeDiacritics(str) {
+    var map = {
+      'àáạảãâầấậẩẫăằắặẳẵ': 'a', 'èéẹẻẽêềếệểễ': 'e',
+      'ìíịỉĩ': 'i', 'òóọỏõôồốộổỗơờớợởỡ': 'o',
+      'ùúụủũưừứựửữ': 'u', 'ỳýỵỷỹ': 'y', 'đ': 'd',
+      'ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ': 'A', 'ÈÉẸẺẼÊỀẾỆỂỄ': 'E',
+      'ÌÍỊỈĨ': 'I', 'ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ': 'O',
+      'ÙÚỤỦŨƯỪỨỰỬỮ': 'U', 'ỲÝỴỶỸ': 'Y', 'Đ': 'D'
+    };
+    for (var regex in map) {
+      str = str.replace(new RegExp('[' + regex + ']', 'g'), map[regex]);
+    }
+    return str;
   }
 
   function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>"'`=\/]/g, s => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-      '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
-    }[s]));
+    return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+      return ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+      })[s];
+    });
   }
 })();
 </script>
