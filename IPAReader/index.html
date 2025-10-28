@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trình đọc thông tin IPA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f7f9fc;
+    margin: 0;
+    padding: 0;
+    color: #1d1d1f;
+  }
+  header {
+    background: linear-gradient(135deg, #007aff, #3b82f6);
+    color: white;
+    text-align: center;
+    padding: 18px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  header img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    vertical-align: middle;
+  }
+  main {
+    max-width: 720px;
+    margin: 30px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  }
+  input[type=file] {
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    cursor: pointer;
+  }
+  .progress-container {
+    width: 100%;
+    background: #e5e7eb;
+    border-radius: 8px;
+    height: 8px;
+    margin-top: 12px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar {
+    width: 0%;
+    height: 8px;
+    background: linear-gradient(90deg, #60a5fa, #2563eb);
+    transition: width 0.4s ease;
+  }
+  .result {
+    margin-top: 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  footer {
+    text-align: center;
+    color: #777;
+    margin: 20px 0;
+    font-size: 0.9rem;
+  }
+  footer a {
+    display: inline-block;
+    margin-bottom: 5px;
+    color: #007aff;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+<header>
+  <img src="https://github.com/nhut990/files/releases/download/V2.0-icon/IMG_5906.png" alt="icon">
+  Trình đọc thông tin IPA
+</header>
+
+<main>
+  <input id="ipaFile" type="file" accept=".ipa">
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div id="output" class="result">Chưa chọn file nào.</div>
+</main>
+
+<footer>
+  <a href="https://nhut990.github.io" target="_blank">Trang chủ</a><br>
+  © 2025 — IPA Info Reader
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plist@3.0.6/dist/plist.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bplist-parser@0.3.2/dist/bplist-parser.min.js"></script>
+<script>
+const fileInput = document.getElementById('ipaFile');
+const output = document.getElementById('output');
+const progressContainer = document.querySelector('.progress-container');
+const progressBar = document.getElementById('progressBar');
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  output.textContent = '⏳ Đang đọc ' + file.name + ' ...';
+  progressContainer.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  let progress = 0;
+  const fakeProgress = setInterval(() => {
+    if (progress < 90) {
+      progress += 10;
+      progressBar.style.width = progress + '%';
+    }
+  }, 120);
+
+  try {
+    const buf = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+    const infoPath = Object.keys(zip.files).find(p => /Payload\/[^/]+\.app\/Info\.plist$/.test(p));
+    if (!infoPath) throw new Error('Không tìm thấy Info.plist trong gói IPA.');
+
+    const infoBuf = await zip.file(infoPath).async('arraybuffer');
+    let plistData;
+    try {
+      const txt = new TextDecoder().decode(infoBuf);
+      plistData = plist.parse(txt);
+    } catch {
+      const arr = new Uint8Array(infoBuf);
+      const parsed = window.bplistParser.parseBuffer(arr.buffer);
+      plistData = parsed[0];
+    }
+
+    const bundleId = plistData.CFBundleIdentifier || '(Không có)';
+    const version = plistData.CFBundleShortVersionString || plistData.CFBundleVersion || '(Không có)';
+    const minIOS = plistData.MinimumOSVersion || '(Không có)';
+
+    clearInterval(fakeProgress);
+    progressBar.style.width = '100%';
+    setTimeout(() => { progressContainer.style.display = 'none'; }, 500);
+
+    output.innerHTML =
+      `📁 <b>Tên file:</b> ${file.name}\n` +
+      `🆔 <b>Bundle ID:</b> ${bundleId}\n` +
+      `🔢 <b>Phiên bản:</b> ${version}\n` +
+      `📱 <b>iOS tối thiểu:</b> ${minIOS}`;
+  } catch (err) {
+    clearInterval(fakeProgress);
+    progressBar.style.width = '0%';
+    output.textContent = '❌ Lỗi khi đọc IPA: ' + err.message;
+  }
+});
+</script>
+</body>
+</html>
