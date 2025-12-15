@@ -1,1 +1,535 @@
-a
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tìm Bundle ID App Store</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f2f2f7;
+  margin: 0; padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  flex-direction: column;
+}
+.container {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  padding: 24px 20px 30px;
+  border-radius: 16px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  text-align: center;
+  align-self: center;
+}
+h2 {
+  margin: 0 0 15px;
+  font-size: 22px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+h2 img {
+  width: 22px; height: 22px;
+}
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.input-row input, .input-row select {
+  flex: 1;
+}
+input, select, button {
+  padding: 12px 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  outline: none;
+  box-sizing: border-box;
+  margin-top: 10px;
+  text-align: center;
+}
+select { background: #f8f8f8; text-align-last: center; }
+button {
+  background: #007aff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+button:hover { background: #005ecb; }
+.note {
+  display: none;
+  font-size: 13px;
+  color: #666;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.app {
+  display: flex;
+  align-items: flex-start;
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+}
+.app a img {
+  width: 60px; height: 60px;
+  border-radius: 12px;
+  margin-right: 12px;
+  transition: 0.2s;
+  object-fit: cover;
+  background: #f3f3f3;
+}
+.app a img:hover { transform: scale(1.05); }
+.app-info { text-align: left; flex: 1; }
+.bundle {
+  background: #f1f1f1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-family: monospace;
+  cursor: pointer;
+  user-select: all;
+  display: inline-block;
+  color: #007aff;
+  margin-top: 8px;
+}
+.bundle.disabled {
+  cursor: default;
+  opacity: 0.6;
+  user-select: text;
+  color: #666;
+}
+.bundle:hover { background: #e5e5e5; }
+#results { margin-top: 20px; text-align: left; max-height: 60vh; overflow: auto; padding-right: 6px; }
+
+.footer {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 14px;
+}
+.footer a {
+  text-decoration: none;
+  color: #007aff;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.3s ease;
+}
+.footer a:hover { color: #005ecb; }
+.arrow {
+  display: inline-block;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.footer a:active { transform: scale(0.97); }
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.toast.show { opacity: 1; }
+
+/* Small screens tweak */
+@media (max-width: 420px) {
+  .container { padding: 18px 14px 22px; border-radius: 12px; }
+  h2 { font-size: 20px; }
+  .input-row { flex-direction: column; gap: 8px; }
+}
+.small-meta { color: #666; font-size: 13px; margin-top: 6px; }
+.actions { margin-top: 10px; display:flex; gap:8px; }
+.app-btn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+.app-btn.primary { background: #007aff; color: #fff; border: none; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2><img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple"> Tìm Bundle ID App Store</h2>
+
+    <div class="input-row">
+      <input type="text" id="appName" placeholder="Nhập tên ứng dụng (VD: Facebook, Zalo...)" aria-label="Tên ứng dụng">
+      <select id="country" aria-label="Quốc gia">
+        <option value="VN" selected>🇻🇳 Việt Nam</option>
+        <option value="US">🇺🇸 Hoa Kỳ</option>
+        <option value="JP">🇯🇵 Nhật Bản</option>
+        <option value="KR">🇰🇷 Hàn Quốc</option>
+        <option value="SG">🇸🇬 Singapore</option>
+        <option value="CN">🇨🇳 Trung Quốc</option>
+        <option value="RU">🇷🇺 Nga</option>
+      </select>
+    </div>
+
+    <button id="searchBtn" aria-label="Tìm kiếm">Tìm kiếm</button>
+
+    <div class="note" id="copyNote">
+      💡 Ấn vào <b>Icon</b> để mở App Store<br>
+      💡 Ấn vào <b>Bundle ID</b> để sao chép
+    </div>
+
+    <div id="results" role="region" aria-live="polite"></div>
+
+    <div class="footer">
+      <a href="https://nhut990.github.io/Bundle/IPAReader" id="getIPAInfo" style="margin-bottom:10px;display:inline-block;">
+        <img src="https://github.com/nhut990/files/releases/download/V2.0-icon/IMG_5906.png" alt="IPA" style="height:20px;width:20px;border-radius:5px;object-fit:cover;">
+        Lấy thông tin IPA
+      </a>
+      <a href="https://nhut990.github.io/Bundle/icon/" id="getAppIcon" style="margin-bottom:10px;display:inline-block;">
+        🖼️ Lấy icon App Store
+      </a>
+      <a href="#" id="homeLink">
+        <span class="arrow" id="arrow">⬅️</span> Quay về trang chủ
+      </a>
+    </div>
+  </div>
+
+  <div class="site-credit" style="text-align:center;color:#888;font-size:13px;margin-top:12px;">Created by Minh Nhut</div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  var searchBtn = document.getElementById('searchBtn');
+  var appNameInput = document.getElementById('appName');
+  var countrySelect = document.getElementById('country');
+  var resultsDiv = document.getElementById('results');
+  var copyNote = document.getElementById('copyNote');
+  var homeLink = document.getElementById('homeLink');
+  var arrow = document.getElementById('arrow');
+  var toast = document.getElementById('toast');
+
+  var placeholderSvg = encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
+    '<rect fill="%23eee" width="100" height="100"/>' +
+    '<text x="50" y="55" font-size="12" text-anchor="middle" fill="%23999">No Image</text>' +
+    '</svg>'
+  );
+  var placeholderUrl = 'data:image/svg+xml;charset=UTF-8,' + placeholderSvg;
+
+  // Debounce helper to avoid flooding API
+  function debounce(fn, wait) {
+    var t;
+    return function () {
+      var ctx = this, args = arguments;
+      clearTimeout(t);
+      t = setTimeout(function () { fn.apply(ctx, args); }, wait);
+    };
+  }
+
+  // Event bindings
+  searchBtn.addEventListener('click', searchApp);
+  appNameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') searchApp();
+  });
+
+  // Optional: trigger search while typing but debounced
+  appNameInput.addEventListener('input', debounce(function () {
+    // If you want instant search while typing, uncomment next line:
+    // searchApp();
+  }, 400));
+
+  homeLink.onclick = function (e) {
+    e.preventDefault();
+    if (arrow) {
+      arrow.style.transform = "translateX(-50px)";
+      arrow.style.opacity = "0";
+    }
+    setTimeout(function () { window.location.href = "https://nhut990.github.io"; }, 400);
+  };
+
+  function setLoading(isLoading) {
+    if (isLoading) {
+      resultsDiv.innerHTML = '🔍 Đang tìm...';
+      copyNote.style.display = 'none';
+    } else {
+      copyNote.style.display = 'block';
+    }
+  }
+
+  async function searchApp() {
+    var name = (appNameInput.value || '').trim();
+    var country = countrySelect.value;
+    if (!name) {
+      resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
+      return;
+    }
+    setLoading(true);
+
+    // Xử lý loại bỏ dấu tiếng Việt cho iOS cũ
+    var term = removeDiacritics(name).toLowerCase();
+
+    var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
+              '&country=' + encodeURIComponent(country) + '&entity=software&limit=25';
+
+    try {
+      var data = await fetchWithTimeout(url, { timeout: 8000 });
+      if (!data || !data.results || data.results.length === 0) {
+        resultsDiv.innerHTML = '❌ Không tìm thấy ứng dụng nào trong khu vực này.';
+        setLoading(false);
+        return;
+      }
+      renderResults(data.results, country);
+    } catch (err) {
+      console.error(err);
+      resultsDiv.innerHTML = '❌ Lỗi kết nối hoặc dữ liệu không hợp lệ.';
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // fetch with timeout and JSON parse
+  function fetchWithTimeout(url, opts) {
+    opts = opts || {};
+    var timeout = opts.timeout || 8000;
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () {
+        reject(new Error('timeout'));
+      }, timeout);
+      fetch(url).then(function (res) {
+        clearTimeout(timer);
+        if (!res.ok) return reject(new Error('Network response was not ok'));
+        return res.json();
+      }).then(function (json) {
+        resolve(json);
+      }).catch(function (err) {
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  }
+
+  function renderResults(apps, country) {
+    resultsDiv.innerHTML = '';
+    copyNote.style.display = 'block';
+
+    apps.forEach(function (app) {
+      var appEl = document.createElement('div');
+      appEl.className = 'app';
+
+      var link = document.createElement('a');
+
+      // --- Changed behavior: construct itms://itunes.apple.com/{country}/app/id{TRACKID} when possible ---
+      var trackId = app.trackId || app.trackId; // using trackId from API
+      var countryLower = (country || 'us').toLowerCase();
+      if (trackId) {
+        // user requested format: itms://itunes.apple.com/vn/app/id579523206
+        link.href = 'itms://itunes.apple.com/' + countryLower + '/app/id' + trackId;
+      } else {
+        // fallback to the regular web link if no trackId available
+        link.href = app.trackViewUrl || '#';
+      }
+      // --------------------------------------------------------------------------------------------
+
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = 'Mở trong App Store';
+
+      var img = document.createElement('img');
+      img.src = app.artworkUrl100 || placeholderUrl;
+      img.alt = app.trackName || 'App';
+      img.onerror = function () { this.src = placeholderUrl; };
+
+      link.appendChild(img);
+      appEl.appendChild(link);
+
+      var info = document.createElement('div');
+      info.className = 'app-info';
+
+      var title = document.createElement('div');
+      var b = document.createElement('b');
+      b.style.color = '#007aff';
+      b.textContent = app.trackName || 'Không rõ';
+      title.appendChild(b);
+
+      var versionSpan = document.createElement('span');
+      versionSpan.style.color = '#555';
+      versionSpan.style.marginLeft = '6px';
+      versionSpan.textContent = '(v' + (app.version || app.versionString || 'N/A') + ')';
+      title.appendChild(versionSpan);
+      info.appendChild(title);
+
+      var bundleLine = document.createElement('div');
+      var bundleSpan = document.createElement('span');
+      bundleSpan.className = 'bundle';
+      if (app.bundleId) {
+        bundleSpan.textContent = app.bundleId;
+        bundleSpan.title = 'Chạm để sao chép Bundle ID';
+        bundleSpan.addEventListener('click', function () { copyBundle(app.bundleId); });
+      } else {
+        bundleSpan.textContent = 'Không rõ';
+        bundleSpan.className += ' disabled';
+      }
+      bundleLine.appendChild(bundleSpan);
+      info.appendChild(bundleLine);
+
+      var seller = document.createElement('div');
+      seller.innerHTML = '<small>' + escapeHtml(app.sellerName || 'Không rõ') + '</small>';
+      info.appendChild(seller);
+
+      var meta = document.createElement('div');
+      meta.className = 'small-meta';
+      var osReq = escapeHtml(app.minimumOsVersion || 'Không rõ');
+      var release = app.currentVersionReleaseDate ? formatDate(app.currentVersionReleaseDate) : 'Không rõ';
+      var price = escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : (app.price + ' ' + (app.currency || '')) ) );
+      var ratings = '';
+      if (typeof app.averageUserRating !== 'undefined') {
+        ratings = ' • ⭐ ' + (app.averageUserRating.toFixed ? app.averageUserRating.toFixed(1) : app.averageUserRating) +
+                  ' (' + (app.userRatingCount || 0) + ')';
+      }
+      meta.textContent = 'Yêu cầu: ' + osReq + ' • Cập nhật: ' + release + ' • ' + price + ratings;
+      info.appendChild(meta);
+
+      // Actions: Open in App Store / Copy / More
+      var actions = document.createElement('div');
+      actions.className = 'actions';
+
+      var openBtn = document.createElement('button');
+      openBtn.className = 'app-btn primary';
+      openBtn.textContent = 'Mở App Store';
+      openBtn.addEventListener('click', function () {
+        openAppStore(app, country);
+      });
+
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'app-btn';
+      copyBtn.textContent = 'Sao chép Bundle';
+      copyBtn.addEventListener('click', function () {
+        if (app.bundleId) copyBundle(app.bundleId);
+        else showToast('Không có Bundle ID');
+      });
+
+      actions.appendChild(openBtn);
+      actions.appendChild(copyBtn);
+      info.appendChild(actions);
+
+      appEl.appendChild(info);
+      resultsDiv.appendChild(appEl);
+    });
+  }
+
+  // Mở App Store: ưu tiên itms-apps:// khi trên iOS để mở app trực tiếp trong App Store app
+  function openAppStore(app, country) {
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var countryLower = (country || 'us').toLowerCase();
+    var trackId = app.trackId || app.trackId;
+    var itms = null;
+    if (trackId) {
+      // itms-apps URL format (good for iOS devices): itms-apps://apps.apple.com/{country}/app/id{TRACKID}
+      itms = 'itms-apps://apps.apple.com/' + countryLower + '/app/id' + trackId;
+    }
+    if (isIOS && itms) {
+      window.location.href = itms;
+    } else if (app.trackViewUrl) {
+      window.open(app.trackViewUrl, '_blank', 'noopener');
+    } else if (itms) {
+      window.open(itms, '_blank', 'noopener');
+    } else {
+      showToast('Không có liên kết App Store.');
+    }
+  }
+
+  // Copy with Clipboard API and fallback
+  function copyBundle(bundle) {
+    if (!bundle) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(bundle).then(function () {
+        showToast('✅ Đã sao chép: ' + bundle);
+      }).catch(function () {
+        fallbackCopy(bundle);
+      });
+    } else {
+      fallbackCopy(bundle);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var input = document.createElement('textarea');
+    input.value = text;
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.select();
+    input.setSelectionRange(0, input.value.length);
+    try {
+      var ok = document.execCommand('copy');
+      if (ok) showToast('✅ Đã sao chép: ' + text);
+      else showToast('❌ Không thể sao chép tự động');
+    } catch (e) {
+      showToast('❌ Lỗi khi sao chép');
+    }
+    document.body.removeChild(input);
+  }
+
+  function showToast(message, timeout) {
+    timeout = timeout || 1600;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () {
+      toast.classList.remove('show');
+    }, timeout);
+  }
+
+  // Chuyển ngày về định dạng Việt Nam
+  function formatDate(str) {
+    var d = new Date(str);
+    if (isNaN(d)) return 'Không rõ';
+    var day = d.getDate();
+    var month = d.getMonth() + 1;
+    var year = d.getFullYear();
+    return day + '/' + month + '/' + year;
+  }
+
+  // Xóa dấu tiếng Việt cho iOS 10
+  function removeDiacritics(str) {
+    if (!str) return '';
+    var map = {
+      'àáạảãâầấậẩẫăằắặẳẵ': 'a', 'èéẹẻẽêềếệểễ': 'e',
+      'ìíịỉĩ': 'i', 'òóọỏõôồốộổỗơờớợởỡ': 'o',
+      'ùúụủũưừứựửữ': 'u', 'ỳýỵỷỹ': 'y', 'đ': 'd',
+      'ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ': 'A', 'ÈÉẸẺẼÊỀẾỆỂỄ': 'E',
+      'ÌÍỊỈĨ': 'I', 'ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ': 'O',
+      'ÙÚỤỦŨƯỪỨỰỬỮ': 'U', 'ỲÝỴỶỸ': 'Y', 'Đ': 'D'
+    };
+    for (var regex in map) {
+      str = str.replace(new RegExp('[' + regex + ']', 'g'), map[regex]);
+    }
+    return str;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+      return ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+      })[s];
+    });
+  }
+})();
+</script>
+</body>
+</html>
