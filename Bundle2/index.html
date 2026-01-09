@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Tìm Bundle ID App Store</title>
 <style>
 body {
@@ -34,17 +34,9 @@ h2 {
   justify-content: center;
   gap: 8px;
 }
-h2 img {
-  width: 22px; height: 22px;
-}
-.input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.input-row input, .input-row select {
-  flex: 1;
-}
+h2 img { width: 22px; height: 22px; }
+.input-row { display: flex; gap: 8px; align-items: center; }
+.input-row input, .input-row select { flex: 1; }
 input, select, button {
   padding: 12px 14px;
   font-size: 16px;
@@ -154,21 +146,14 @@ button:hover { background: #005ecb; }
   .input-row { flex-direction: column; gap: 8px; }
 }
 .small-meta { color: #666; font-size: 13px; margin-top: 6px; }
-.actions { margin-top: 10px; display:flex; gap:8px; }
-.app-btn {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
-}
-.app-btn.primary { background: #007aff; color: #fff; border: none; }
 </style>
 </head>
 <body>
-  <div class="container">
-    <h2><img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple"> Tìm Bundle ID App Store</h2>
+  <div class="container" role="main">
+    <h2>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple">
+      Tìm Bundle ID App Store
+    </h2>
 
     <div class="input-row">
       <input type="text" id="appName" placeholder="Nhập tên ứng dụng (VD: Facebook, Zalo...)" aria-label="Tên ứng dụng">
@@ -186,7 +171,7 @@ button:hover { background: #005ecb; }
     <button id="searchBtn" aria-label="Tìm kiếm">Tìm kiếm</button>
 
     <div class="note" id="copyNote">
-      💡 Ấn vào <b>Icon</b> để mở App Store<br>
+      💡 Ấn vào <b>Icon</b> để mở iTunes (PC)<br>
       💡 Ấn vào <b>Bundle ID</b> để sao chép
     </div>
 
@@ -229,7 +214,6 @@ button:hover { background: #005ecb; }
   );
   var placeholderUrl = 'data:image/svg+xml;charset=UTF-8,' + placeholderSvg;
 
-  // Debounce helper to avoid flooding API
   function debounce(fn, wait) {
     var t;
     return function () {
@@ -239,16 +223,12 @@ button:hover { background: #005ecb; }
     };
   }
 
-  // Event bindings
   searchBtn.addEventListener('click', searchApp);
   appNameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') searchApp();
   });
-
-  // Optional: trigger search while typing but debounced
   appNameInput.addEventListener('input', debounce(function () {
-    // If you want instant search while typing, uncomment next line:
-    // searchApp();
+    // nếu muốn auto-search khi gõ, gọi searchApp() ở đây (đã debounce)
   }, 400));
 
   homeLink.onclick = function (e) {
@@ -271,16 +251,14 @@ button:hover { background: #005ecb; }
 
   async function searchApp() {
     var name = (appNameInput.value || '').trim();
-    var country = countrySelect.value;
+    var country = countrySelect.value || 'US';
     if (!name) {
       resultsDiv.innerHTML = '⚠️ Vui lòng nhập tên ứng dụng.';
       return;
     }
     setLoading(true);
 
-    // Xử lý loại bỏ dấu tiếng Việt cho iOS cũ
     var term = removeDiacritics(name).toLowerCase();
-
     var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
               '&country=' + encodeURIComponent(country) + '&entity=software&limit=25';
 
@@ -300,7 +278,6 @@ button:hover { background: #005ecb; }
     }
   }
 
-  // fetch with timeout and JSON parse
   function fetchWithTimeout(url, opts) {
     opts = opts || {};
     var timeout = opts.timeout || 8000;
@@ -316,8 +293,40 @@ button:hover { background: #005ecb; }
         resolve(json);
       }).catch(function (err) {
         clearTimeout(timer);
-        reject(err);
+        console.warn('Fetch failed, attempting JSONP fallback:', err && err.message ? err.message : err);
+        // JSONP fallback (iTunes supports callback param)
+        jsonpFetch(url, timeout).then(resolve).catch(function (e) {
+          reject(e);
+        });
       });
+    });
+  }
+
+  function jsonpFetch(url, timeout) {
+    return new Promise(function (resolve, reject) {
+      var timer;
+      var cbName = '__itunes_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      window[cbName] = function (data) {
+        cleanup();
+        resolve(data);
+      };
+      function cleanup() {
+        if (timer) clearTimeout(timer);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+      var script = document.createElement('script');
+      var sep = url.indexOf('?') === -1 ? '?' : '&';
+      script.src = url + sep + 'callback=' + cbName;
+      script.onerror = function () {
+        cleanup();
+        reject(new Error('JSONP error'));
+      };
+      document.body.appendChild(script);
+      timer = setTimeout(function () {
+        cleanup();
+        reject(new Error('timeout'));
+      }, timeout);
     });
   }
 
@@ -329,23 +338,18 @@ button:hover { background: #005ecb; }
       var appEl = document.createElement('div');
       appEl.className = 'app';
 
+      // Create anchor for icon - old behavior: itms://itunes.apple.com/{country}/app/id{TRACKID}
       var link = document.createElement('a');
-
-      // --- Changed behavior: construct itms://itunes.apple.com/{country}/app/id{TRACKID} when possible ---
-      var trackId = app.trackId || app.trackId; // using trackId from API
+      var trackId = app.trackId;
       var countryLower = (country || 'us').toLowerCase();
       if (trackId) {
-        // user requested format: itms://itunes.apple.com/vn/app/id579523206
         link.href = 'itms://itunes.apple.com/' + countryLower + '/app/id' + trackId;
       } else {
-        // fallback to the regular web link if no trackId available
         link.href = app.trackViewUrl || '#';
       }
-      // --------------------------------------------------------------------------------------------
-
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.title = 'Mở trong App Store';
+      link.title = 'Mở trong iTunes';
 
       var img = document.createElement('img');
       img.src = app.artworkUrl100 || placeholderUrl;
@@ -378,6 +382,11 @@ button:hover { background: #005ecb; }
         bundleSpan.textContent = app.bundleId;
         bundleSpan.title = 'Chạm để sao chép Bundle ID';
         bundleSpan.addEventListener('click', function () { copyBundle(app.bundleId); });
+        // Keyboard accessibility
+        bundleSpan.setAttribute('tabindex', '0');
+        bundleSpan.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') copyBundle(app.bundleId);
+        });
       } else {
         bundleSpan.textContent = 'Không rõ';
         bundleSpan.className += ' disabled';
@@ -395,60 +404,18 @@ button:hover { background: #005ecb; }
       var release = app.currentVersionReleaseDate ? formatDate(app.currentVersionReleaseDate) : 'Không rõ';
       var price = escapeHtml(app.formattedPrice || (app.price === 0 || app.price === '0' ? 'Free' : (app.price + ' ' + (app.currency || '')) ) );
       var ratings = '';
-      if (typeof app.averageUserRating !== 'undefined') {
+      if (typeof app.averageUserRating !== 'undefined' && app.averageUserRating !== null) {
         ratings = ' • ⭐ ' + (app.averageUserRating.toFixed ? app.averageUserRating.toFixed(1) : app.averageUserRating) +
                   ' (' + (app.userRatingCount || 0) + ')';
       }
       meta.textContent = 'Yêu cầu: ' + osReq + ' • Cập nhật: ' + release + ' • ' + price + ratings;
       info.appendChild(meta);
 
-      // Actions: Open in App Store / Copy / More
-      var actions = document.createElement('div');
-      actions.className = 'actions';
-
-      var openBtn = document.createElement('button');
-      openBtn.className = 'app-btn primary';
-      openBtn.textContent = 'Mở App Store';
-      openBtn.addEventListener('click', function () {
-        openAppStore(app, country);
-      });
-
-      var copyBtn = document.createElement('button');
-      copyBtn.className = 'app-btn';
-      copyBtn.textContent = 'Sao chép Bundle';
-      copyBtn.addEventListener('click', function () {
-        if (app.bundleId) copyBundle(app.bundleId);
-        else showToast('Không có Bundle ID');
-      });
-
-      actions.appendChild(openBtn);
-      actions.appendChild(copyBtn);
-      info.appendChild(actions);
+      // NOTE: Buttons removed per request. Icon click opens iTunes (itms link), clicking bundleSpan copies bundle ID.
 
       appEl.appendChild(info);
       resultsDiv.appendChild(appEl);
     });
-  }
-
-  // Mở App Store: ưu tiên itms-apps:// khi trên iOS để mở app trực tiếp trong App Store app
-  function openAppStore(app, country) {
-    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    var countryLower = (country || 'us').toLowerCase();
-    var trackId = app.trackId || app.trackId;
-    var itms = null;
-    if (trackId) {
-      // itms-apps URL format (good for iOS devices): itms-apps://apps.apple.com/{country}/app/id{TRACKID}
-      itms = 'itms-apps://apps.apple.com/' + countryLower + '/app/id' + trackId;
-    }
-    if (isIOS && itms) {
-      window.location.href = itms;
-    } else if (app.trackViewUrl) {
-      window.open(app.trackViewUrl, '_blank', 'noopener');
-    } else if (itms) {
-      window.open(itms, '_blank', 'noopener');
-    } else {
-      showToast('Không có liên kết App Store.');
-    }
   }
 
   // Copy with Clipboard API and fallback
@@ -493,7 +460,6 @@ button:hover { background: #005ecb; }
     }, timeout);
   }
 
-  // Chuyển ngày về định dạng Việt Nam
   function formatDate(str) {
     var d = new Date(str);
     if (isNaN(d)) return 'Không rõ';
@@ -503,9 +469,13 @@ button:hover { background: #005ecb; }
     return day + '/' + month + '/' + year;
   }
 
-  // Xóa dấu tiếng Việt cho iOS 10
   function removeDiacritics(str) {
     if (!str) return '';
+    try {
+      if (String.prototype.normalize) {
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+      }
+    } catch (e) {}
     var map = {
       'àáạảãâầấậẩẫăằắặẳẵ': 'a', 'èéẹẻẽêềếệểễ': 'e',
       'ìíịỉĩ': 'i', 'òóọỏõôồốộổỗơờớợởỡ': 'o',
