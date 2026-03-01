@@ -223,7 +223,7 @@ button:hover { background: #005ecb; }
     var term = removeDiacritics(name).toLowerCase();
 
     var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(term) +
-              '&country=' + encodeURIComponent(country) + '&entity=software&limit=10';
+              '&country=' + encodeURIComponent(country) + '&entity=software&limit=30';
 
     getJSON(url, function (err, data) {
       if (err || !data || !data.results || !data.results.length) {
