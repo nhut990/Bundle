@@ -183,6 +183,31 @@
       </div>
     </div>
     <div class="result-row">
+      <div class="result-icon icon-blue">👤</div>
+      <div style="flex:1;min-width:0">
+        <div class="result-label">Nhà phát triển</div>
+        <div class="result-value">
+          <span id="val-developer">—</span>
+          <button class="copy-btn" onclick="copyVal('val-developer')">📋</button>
+        </div>
+      </div>
+    </div>
+    <div class="result-row">
+      <div class="result-icon icon-green">📅</div>
+      <div style="flex:1;min-width:0">
+        <div class="result-label">Ngày phát hành</div>
+        <div class="result-value"><span id="val-release">—</span></div>
+      </div>
+    </div>
+    <div class="result-row">
+      <div class="result-icon icon-purple">📲</div>
+      <div style="flex:1;min-width:0">
+        <div class="result-label">Hỗ trợ thiết bị</div>
+        <div class="result-value"><span id="val-devices">—</span></div>
+        <div style="font-size:0.75rem;color:#94a3b8;margin-top:3px;" id="val-iphone-note"></div>
+      </div>
+    </div>
+    <div class="result-row">
       <div class="result-icon icon-teal">🛒</div>
       <div style="flex:1;min-width:0">
         <div class="result-label">Item ID (App Store)</div>
@@ -217,7 +242,7 @@ const dropZone  = document.getElementById('drop-zone');
 const fileInput = document.getElementById('ipaFile');
 
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+dropZone.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragging'); });
 dropZone.addEventListener('drop', e => {
   e.preventDefault(); dropZone.classList.remove('dragging');
   const f = e.dataTransfer.files[0];
@@ -248,11 +273,12 @@ async function processIPA(file) {
 
     // ── iTunesMetadata.plist → itemId ──
     let itemId = null;
+    let meta   = null;
     const metaPath = files.find(p => p === 'iTunesMetadata.plist');
     if (metaPath) {
       try {
         const metaBytes = await zip.file(metaPath).async('uint8array');
-        const meta = await parsePlist(metaBytes);
+        meta = await parsePlist(metaBytes);
         if (meta['itemId'] !== undefined && meta['itemId'] !== null)
           itemId = String(meta['itemId']);
       } catch (_) {}
@@ -265,6 +291,58 @@ async function processIPA(file) {
     const iosVer = info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '';
     set('val-ios',      iosVer || '(không có)');
     set('val-ios-note', iosVer || '?');
+
+    // ── Nhà phát triển ──
+    set('val-developer', meta ? (meta['artistName'] || '(không có)') : '(không có)');
+
+    // ── Ngày phát hành ──
+    const relRaw = meta ? meta['releaseDate'] : null;
+    if (relRaw) {
+      const d = new Date(relRaw);
+      const formatted = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      set('val-release', formatted);
+    } else {
+      set('val-release', '(không có)');
+    }
+
+    // ── Hỗ trợ thiết bị ──
+    const family = info['UIDeviceFamily'] || [];
+    const caps   = info['UIRequiredDeviceCapabilities'] || [];
+    const capArr = Array.isArray(caps) ? caps : Object.keys(caps).filter(k => caps[k]);
+    const arch   = capArr.find(c => c === 'arm64') ? '64-bit' : capArr.find(c => c === 'armv7') ? '32-bit' : '';
+    let deviceStr = '';
+    if (family.includes(1) && family.includes(2)) deviceStr = 'iPhone + iPad';
+    else if (family.includes(1)) deviceStr = 'iPhone';
+    else if (family.includes(2)) deviceStr = 'iPad';
+    if (arch) deviceStr += (deviceStr ? ` (${arch})` : arch);
+    set('val-devices', deviceStr || '(không xác định)');
+
+    // Chú thích iPhone tối thiểu
+    const iphoneMap = {
+      '3.0':'iPhone 2G','3.1':'iPhone 2G',
+      '4.0':'iPhone 3G','4.1':'iPhone 3G','4.2':'iPhone 3G','4.3':'iPhone 3GS',
+      '5.0':'iPhone 3GS','5.1':'iPhone 3GS',
+      '6.0':'iPhone 3GS','6.1':'iPhone 3GS',
+      '7.0':'iPhone 4','7.1':'iPhone 4',
+      '8.0':'iPhone 4s','8.1':'iPhone 4s','8.2':'iPhone 4s','8.3':'iPhone 4s','8.4':'iPhone 4s',
+      '9.0':'iPhone 4s','9.1':'iPhone 4s','9.2':'iPhone 4s','9.3':'iPhone 4s',
+      '10.0':'iPhone 5','10.1':'iPhone 5','10.2':'iPhone 5','10.3':'iPhone 5',
+      '11.0':'iPhone 5s','11.1':'iPhone 5s','11.2':'iPhone 5s','11.3':'iPhone 5s','11.4':'iPhone 5s',
+      '12.0':'iPhone 5s','12.1':'iPhone 5s','12.2':'iPhone 5s','12.3':'iPhone 5s','12.4':'iPhone 5s','12.5':'iPhone 5s',
+      '13.0':'iPhone 6s','13.1':'iPhone 6s','13.2':'iPhone 6s','13.3':'iPhone 6s','13.4':'iPhone 6s','13.5':'iPhone 6s','13.6':'iPhone 6s','13.7':'iPhone 6s',
+      '14.0':'iPhone 6s','14.1':'iPhone 6s','14.2':'iPhone 6s','14.3':'iPhone 6s','14.4':'iPhone 6s','14.5':'iPhone 6s','14.6':'iPhone 6s','14.7':'iPhone 6s','14.8':'iPhone 6s',
+      '15.0':'iPhone 6s','15.1':'iPhone 6s','15.2':'iPhone 6s','15.3':'iPhone 6s','15.4':'iPhone 6s','15.5':'iPhone 6s','15.6':'iPhone 6s','15.7':'iPhone 6s','15.8':'iPhone 6s',
+      '16.0':'iPhone 8','16.1':'iPhone 8','16.2':'iPhone 8','16.3':'iPhone 8','16.4':'iPhone 8','16.5':'iPhone 8','16.6':'iPhone 8','16.7':'iPhone 8',
+      '17.0':'iPhone XS','17.1':'iPhone XS','17.2':'iPhone XS','17.3':'iPhone XS','17.4':'iPhone XS','17.5':'iPhone XS','17.6':'iPhone XS','17.7':'iPhone XS',
+      '18.0':'iPhone XS','18.1':'iPhone XS','18.2':'iPhone XS','18.3':'iPhone XS','18.4':'iPhone XS',
+    };
+    if (iosVer) {
+      const major = iosVer.split('.')[0];
+      const minor = iosVer.split('.')[1] || '0';
+      const iphoneMin = iphoneMap[`${major}.${minor}`] || iphoneMap[`${major}.0`] || null;
+      const noteEl = document.getElementById('val-iphone-note');
+      noteEl.textContent = iphoneMin ? `Tương đương từ ${iphoneMin} trở lên` : '';
+    }
 
     // ── Item ID + nút App Store ──
     const itemIdEl   = document.getElementById('val-itemid');
