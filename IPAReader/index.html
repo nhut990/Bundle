@@ -318,28 +318,31 @@ async function processIPA(file) {
     set('val-devices', deviceStr || '(không xác định)');
 
     // Chú thích iPhone tối thiểu
-    const iphoneMap = {
-      '3.0':'iPhone 2G','3.1':'iPhone 2G',
-      '4.0':'iPhone 3G','4.1':'iPhone 3G','4.2':'iPhone 3G','4.3':'iPhone 3GS',
-      '5.0':'iPhone 3GS','5.1':'iPhone 3GS',
-      '6.0':'iPhone 3GS','6.1':'iPhone 3GS',
-      '7.0':'iPhone 4','7.1':'iPhone 4',
-      '8.0':'iPhone 4s','8.1':'iPhone 4s','8.2':'iPhone 4s','8.3':'iPhone 4s','8.4':'iPhone 4s',
-      '9.0':'iPhone 4s','9.1':'iPhone 4s','9.2':'iPhone 4s','9.3':'iPhone 4s',
-      '10.0':'iPhone 5','10.1':'iPhone 5','10.2':'iPhone 5','10.3':'iPhone 5',
-      '11.0':'iPhone 5s','11.1':'iPhone 5s','11.2':'iPhone 5s','11.3':'iPhone 5s','11.4':'iPhone 5s',
-      '12.0':'iPhone 5s','12.1':'iPhone 5s','12.2':'iPhone 5s','12.3':'iPhone 5s','12.4':'iPhone 5s','12.5':'iPhone 5s',
-      '13.0':'iPhone 6s','13.1':'iPhone 6s','13.2':'iPhone 6s','13.3':'iPhone 6s','13.4':'iPhone 6s','13.5':'iPhone 6s','13.6':'iPhone 6s','13.7':'iPhone 6s',
-      '14.0':'iPhone 6s','14.1':'iPhone 6s','14.2':'iPhone 6s','14.3':'iPhone 6s','14.4':'iPhone 6s','14.5':'iPhone 6s','14.6':'iPhone 6s','14.7':'iPhone 6s','14.8':'iPhone 6s',
-      '15.0':'iPhone 6s','15.1':'iPhone 6s','15.2':'iPhone 6s','15.3':'iPhone 6s','15.4':'iPhone 6s','15.5':'iPhone 6s','15.6':'iPhone 6s','15.7':'iPhone 6s','15.8':'iPhone 6s',
-      '16.0':'iPhone 8','16.1':'iPhone 8','16.2':'iPhone 8','16.3':'iPhone 8','16.4':'iPhone 8','16.5':'iPhone 8','16.6':'iPhone 8','16.7':'iPhone 8',
-      '17.0':'iPhone XS','17.1':'iPhone XS','17.2':'iPhone XS','17.3':'iPhone XS','17.4':'iPhone XS','17.5':'iPhone XS','17.6':'iPhone XS','17.7':'iPhone XS',
-      '18.0':'iPhone XS','18.1':'iPhone XS','18.2':'iPhone XS','18.3':'iPhone XS','18.4':'iPhone XS',
+    // Mapping iOS major version → iPhone tối thiểu có thể cài
+    // Nguồn: iosref.com — dựa trên Max iOS của từng model iPhone
+    const iphoneMajorMap = {
+      1:'iPhone (gen 1)', 2:'iPhone (gen 1)', 3:'iPhone 3G',
+      4:'iPhone 3G',   // iPhone 3G max iOS 4
+      5:'iPhone 3GS',  // iPhone 3GS max iOS 6
+      6:'iPhone 3GS',
+      7:'iPhone 4',    // iPhone 4 max iOS 7
+      8:'iPhone 4s',   // iPhone 4s max iOS 9
+      9:'iPhone 4s',
+      10:'iPhone 5',   // iPhone 5 / 5c max iOS 10
+      11:'iPhone 5s',  // iPhone 5s max iOS 12
+      12:'iPhone 5s',
+      13:'iPhone 6s',  // iPhone 6s / SE gen1 / 7 max iOS 15
+      14:'iPhone 6s',
+      15:'iPhone 6s',
+      16:'iPhone 8',   // iPhone 8 / X max iOS 16
+      17:'iPhone XS',  // iPhone XS / XR max iOS 18
+      18:'iPhone XS',
+      19:'iPhone 11',  // iPhone 11+ max iOS 26+
+      26:'iPhone 11',
     };
     if (iosVer) {
-      const major = iosVer.split('.')[0];
-      const minor = iosVer.split('.')[1] || '0';
-      const iphoneMin = iphoneMap[`${major}.${minor}`] || iphoneMap[`${major}.0`] || null;
+      const major = parseInt(iosVer.split('.')[0], 10);
+      const iphoneMin = iphoneMajorMap[major] || null;
       const noteEl = document.getElementById('val-iphone-note');
       noteEl.textContent = iphoneMin ? `Tương đương từ ${iphoneMin} trở lên` : '';
     }
