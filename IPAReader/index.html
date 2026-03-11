@@ -74,7 +74,7 @@
   .icon-orange { background: #ffedd5; }
   .icon-pink   { background: #fce7f3; }
   .icon-teal   { background: #ccfbf1; }
-  .result-label { font-size: 0.78rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .result-label { font-size: 0.78rem; color: #007aff; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
   .result-value { font-size: 0.97rem; font-weight: 600; color: #111827; word-break: break-all; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .copy-btn { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; transition: color 0.15s, background 0.15s; flex-shrink: 0; }
   .copy-btn:hover { color: #007aff; background: #eff6ff; }
@@ -179,6 +179,7 @@
           <span id="val-ios">—</span>
           <button class="copy-btn" onclick="copyVal('val-ios')">📋</button>
         </div>
+        <div style="font-size:0.75rem;color:#94a3b8;margin-top:3px;">Yêu cầu iOS <span id="val-ios-note">—</span> trở lên để cài đặt</div>
       </div>
     </div>
     <div class="result-row">
@@ -261,7 +262,9 @@ async function processIPA(file) {
     set('val-bundle',   info['CFBundleIdentifier'] || '(không có)');
     set('val-appname',  info['CFBundleDisplayName'] || info['CFBundleName'] || '(không có)');
     set('val-version',  info['CFBundleShortVersionString'] || info['CFBundleVersion'] || '(không có)');
-    set('val-ios',      info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '(không có)');
+    const iosVer = info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '';
+    set('val-ios',      iosVer || '(không có)');
+    set('val-ios-note', iosVer || '?');
 
     // ── Item ID + nút App Store ──
     const itemIdEl   = document.getElementById('val-itemid');
