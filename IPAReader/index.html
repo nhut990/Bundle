@@ -9,8 +9,7 @@
   body {
     font-family: 'Inter', sans-serif;
     background: #f7f9fc;
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     color: #1d1d1f;
   }
   header {
@@ -25,12 +24,7 @@
     justify-content: center;
     gap: 10px;
   }
-  header img {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    vertical-align: middle;
-  }
+  header img { width: 28px; height: 28px; border-radius: 6px; }
   main {
     max-width: 720px;
     margin: 30px auto;
@@ -39,8 +33,6 @@
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.05);
   }
-
-  /* Drop zone */
   .drop-zone {
     width: 100%;
     padding: 28px 16px;
@@ -51,40 +43,17 @@
     text-align: center;
     transition: border-color 0.2s, background 0.2s;
     position: relative;
+    box-sizing: border-box;
   }
-  .drop-zone:hover, .drop-zone.dragging {
-    border-color: #007aff;
-    background: #eff6ff;
-  }
-  .drop-zone input[type=file] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
+  .drop-zone:hover, .drop-zone.dragging { border-color: #007aff; background: #eff6ff; }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
   .drop-zone-icon { font-size: 2rem; margin-bottom: 8px; }
   .drop-zone-text { font-size: 0.95rem; color: #64748b; }
   .drop-zone-text b { color: #007aff; }
 
-  .progress-container {
-    width: 100%;
-    background: #e5e7eb;
-    border-radius: 8px;
-    height: 8px;
-    margin-top: 12px;
-    overflow: hidden;
-    display: none;
-  }
-  .progress-bar {
-    width: 0%;
-    height: 8px;
-    background: linear-gradient(90deg, #60a5fa, #2563eb);
-    transition: width 0.4s ease;
-  }
+  .progress-container { width: 100%; background: #e5e7eb; border-radius: 8px; height: 8px; margin-top: 12px; overflow: hidden; display: none; }
+  .progress-bar { width: 0%; height: 8px; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width 0.4s ease; }
 
-  /* Result */
   .result {
     margin-top: 22px;
     background: #f9fafb;
@@ -94,104 +63,53 @@
     display: none;
     animation: fadeIn 0.3s ease;
   }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
-  .result-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 18px;
-    border-bottom: 1px solid #f1f5f9;
-  }
+  .result-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #f1f5f9; }
   .result-row:last-child { border-bottom: none; }
-
-  .result-icon {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-  }
+  .result-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
   .icon-blue   { background: #dbeafe; }
   .icon-green  { background: #dcfce7; }
   .icon-purple { background: #ede9fe; }
   .icon-orange { background: #ffedd5; }
   .icon-pink   { background: #fce7f3; }
-
-  .result-label {
-    font-size: 0.78rem;
-    color: #94a3b8;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 3px;
-  }
-  .result-value {
-    font-size: 0.97rem;
-    font-weight: 600;
-    color: #111827;
-    word-break: break-all;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .copy-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #9ca3af;
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    transition: color 0.15s, background 0.15s;
-    flex-shrink: 0;
-  }
+  .icon-teal   { background: #ccfbf1; }
+  .result-label { font-size: 0.78rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .result-value { font-size: 0.97rem; font-weight: 600; color: #111827; word-break: break-all; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .copy-btn { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; transition: color 0.15s, background 0.15s; flex-shrink: 0; }
   .copy-btn:hover { color: #007aff; background: #eff6ff; }
 
-  /* Error */
-  .error-box {
-    display: none;
-    margin-top: 16px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
-    padding: 14px 18px;
-    color: #dc2626;
-    font-size: 0.9rem;
+  /* Nút App Store */
+  .btn-appstore {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
   }
+  .btn-appstore:hover { background: #0062cc; transform: translateY(-1px); }
+  .btn-appstore:active { transform: translateY(0); }
+  .btn-appstore svg { width: 13px; height: 13px; }
 
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 28px; left: 50%;
-    transform: translateX(-50%) translateY(14px);
-    background: #111827; color: #fff;
-    padding: 10px 22px;
-    border-radius: 99px;
-    font-size: 0.85rem; font-weight: 500;
-    opacity: 0; pointer-events: none;
-    transition: all 0.25s;
-    white-space: nowrap;
-  }
+  .badge-notfound { font-size: 0.75rem; font-weight: 500; color: #92400e; background: #fef3c7; border-radius: 6px; padding: 2px 8px; }
+
+  .error-box { display: none; margin-top: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; color: #dc2626; font-size: 0.9rem; }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(14px); background: #111827; color: #fff; padding: 10px 22px; border-radius: 99px; font-size: 0.85rem; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.25s; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  footer {
-    text-align: center;
-    color: #777;
-    margin: 20px 0;
-    font-size: 0.9rem;
-  }
-  footer a {
-    display: inline-block;
-    margin-bottom: 5px;
-    color: #007aff;
-    text-decoration: none;
-    font-weight: 600;
-  }
+  footer { text-align: center; color: #777; margin: 20px 0; font-size: 0.9rem; }
+  footer a { display: inline-block; margin-bottom: 5px; color: #007aff; text-decoration: none; font-weight: 600; }
   footer a:hover { text-decoration: underline; }
 </style>
 </head>
@@ -203,22 +121,18 @@
 </header>
 
 <main>
-  <!-- Drop zone -->
   <div class="drop-zone" id="drop-zone">
     <input type="file" id="ipaFile" accept=".ipa">
     <div class="drop-zone-icon">📦</div>
     <div class="drop-zone-text">Kéo thả file IPA vào đây hoặc <b>nhấn để chọn</b></div>
   </div>
 
-  <!-- Progress -->
   <div class="progress-container" id="progressContainer">
     <div class="progress-bar" id="progressBar"></div>
   </div>
 
-  <!-- Error -->
   <div class="error-box" id="errorBox"></div>
 
-  <!-- Result -->
   <div class="result" id="result">
     <div class="result-row">
       <div class="result-icon icon-blue">📁</div>
@@ -233,7 +147,7 @@
         <div class="result-label">Bundle ID</div>
         <div class="result-value">
           <span id="val-bundle">—</span>
-          <button class="copy-btn" title="Sao chép" onclick="copyVal('val-bundle')">📋</button>
+          <button class="copy-btn" onclick="copyVal('val-bundle')">📋</button>
         </div>
       </div>
     </div>
@@ -243,7 +157,7 @@
         <div class="result-label">Tên ứng dụng</div>
         <div class="result-value">
           <span id="val-appname">—</span>
-          <button class="copy-btn" title="Sao chép" onclick="copyVal('val-appname')">📋</button>
+          <button class="copy-btn" onclick="copyVal('val-appname')">📋</button>
         </div>
       </div>
     </div>
@@ -253,7 +167,7 @@
         <div class="result-label">Phiên bản</div>
         <div class="result-value">
           <span id="val-version">—</span>
-          <button class="copy-btn" title="Sao chép" onclick="copyVal('val-version')">📋</button>
+          <button class="copy-btn" onclick="copyVal('val-version')">📋</button>
         </div>
       </div>
     </div>
@@ -263,7 +177,23 @@
         <div class="result-label">iOS tối thiểu</div>
         <div class="result-value">
           <span id="val-ios">—</span>
-          <button class="copy-btn" title="Sao chép" onclick="copyVal('val-ios')">📋</button>
+          <button class="copy-btn" onclick="copyVal('val-ios')">📋</button>
+        </div>
+      </div>
+    </div>
+    <div class="result-row">
+      <div class="result-icon icon-teal">🛒</div>
+      <div style="flex:1;min-width:0">
+        <div class="result-label">Item ID (App Store)</div>
+        <div class="result-value">
+          <span id="val-itemid">—</span>
+          <button class="copy-btn" id="btn-copy-itemid" onclick="copyVal('val-itemid')" style="display:none">📋</button>
+          <a class="btn-appstore" id="btn-appstore" href="#" target="_blank" style="display:none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+            App Store
+          </a>
         </div>
       </div>
     </div>
@@ -277,17 +207,11 @@
 
 <div class="toast" id="toast">✓ Đã sao chép</div>
 
-<!-- JSZip để giải nén IPA -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<!-- plist.js: fallback cho IPA 32-bit / binary plist cũ -->
 <script src="https://cdn.jsdelivr.net/npm/plist@3.0.6/dist/plist.min.js"></script>
-<!-- bplist-parser: fallback thứ 2 cho binary plist 32-bit đời cũ -->
 <script src="https://cdn.jsdelivr.net/npm/bplist-parser@0.3.2/dist/bplist-parser.min.js"></script>
 
 <script>
-/* ─────────────────────────────────────────────
-   DROP ZONE & FILE INPUT
-───────────────────────────────────────────── */
 const dropZone  = document.getElementById('drop-zone');
 const fileInput = document.getElementById('ipaFile');
 
@@ -300,9 +224,6 @@ dropZone.addEventListener('drop', e => {
 });
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) processIPA(fileInput.files[0]); });
 
-/* ─────────────────────────────────────────────
-   MAIN PROCESS
-───────────────────────────────────────────── */
 async function processIPA(file) {
   showError('');
   showResult(false);
@@ -314,25 +235,53 @@ async function processIPA(file) {
   }, 130);
 
   try {
-    const buf  = await file.arrayBuffer();
-    const zip  = await JSZip.loadAsync(buf);
+    const buf   = await file.arrayBuffer();
+    const zip   = await JSZip.loadAsync(buf);
+    const files = Object.keys(zip.files);
 
-    const infoPath = Object.keys(zip.files).find(p =>
-      /^Payload\/[^/]+\.app\/Info\.plist$/i.test(p)
-    );
+    // ── Info.plist ──
+    const infoPath = files.find(p => /^Payload\/[^/]+\.app\/Info\.plist$/i.test(p));
     if (!infoPath) throw new Error('Không tìm thấy Info.plist trong gói IPA.');
+    const infoBytes = await zip.file(infoPath).async('uint8array');
+    const info = await parsePlist(infoBytes);
 
-    const bytes = await zip.file(infoPath).async('uint8array');
-    const data  = await parsePlist(bytes);
+    // ── iTunesMetadata.plist → itemId ──
+    let itemId = null;
+    const metaPath = files.find(p => p === 'iTunesMetadata.plist');
+    if (metaPath) {
+      try {
+        const metaBytes = await zip.file(metaPath).async('uint8array');
+        const meta = await parsePlist(metaBytes);
+        if (meta['itemId'] !== undefined && meta['itemId'] !== null)
+          itemId = String(meta['itemId']);
+      } catch (_) {}
+    }
 
     set('val-filename', file.name);
-    set('val-bundle',   data['CFBundleIdentifier'] || '(không có)');
-    set('val-appname',  data['CFBundleDisplayName'] || data['CFBundleName'] || '(không có)');
-    set('val-version',  data['CFBundleShortVersionString'] || data['CFBundleVersion'] || '(không có)');
-    set('val-ios',      data['MinimumOSVersion'] || data['LSMinimumSystemVersion'] || '(không có)');
+    set('val-bundle',   info['CFBundleIdentifier'] || '(không có)');
+    set('val-appname',  info['CFBundleDisplayName'] || info['CFBundleName'] || '(không có)');
+    set('val-version',  info['CFBundleShortVersionString'] || info['CFBundleVersion'] || '(không có)');
+    set('val-ios',      info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '(không có)');
+
+    // ── Item ID + nút App Store ──
+    const itemIdEl   = document.getElementById('val-itemid');
+    const btnCopy    = document.getElementById('btn-copy-itemid');
+    const btnStore   = document.getElementById('btn-appstore');
+
+    if (itemId) {
+      itemIdEl.textContent  = itemId;
+      btnCopy.style.display = '';
+      btnStore.href         = `https://apps.apple.com/app/id${itemId}`;
+      btnStore.style.display = '';
+    } else {
+      itemIdEl.innerHTML    = '<span class="badge-notfound">Không có (IPA không qua App Store)</span>';
+      btnCopy.style.display = 'none';
+      btnStore.style.display = 'none';
+    }
 
     clearInterval(fake); setProgress(100);
     setTimeout(() => { showProgress(false); showResult(true); }, 350);
+
   } catch (err) {
     clearInterval(fake); setProgress(0);
     setTimeout(() => showProgress(false), 300);
@@ -340,183 +289,74 @@ async function processIPA(file) {
   }
 }
 
-/* ─────────────────────────────────────────────
-   PLIST DISPATCHER
-   Thứ tự ưu tiên:
-     1. Tự parse (binary hoặc XML) — nhanh, không cần thư viện
-     2. plist.js  — fallback cho IPA 32-bit / XML đặc biệt
-     3. bplist-parser — fallback cuối cho binary plist đời cũ
-───────────────────────────────────────────── */
+/* ── PLIST DISPATCHER ── */
 async function parsePlist(bytes) {
-  const isBinary = bytes[0] === 0x62 && bytes[1] === 0x70 &&
-                   bytes[2] === 0x6c && bytes[3] === 0x69;   // "bpli"
-
+  const isBinary = bytes[0]===0x62 && bytes[1]===0x70 && bytes[2]===0x6c && bytes[3]===0x69;
   if (isBinary) {
-    // Attempt 1: tự parse binary plist (tốt cho IPA 64-bit mới)
-    try {
-      const result = parseBinaryPlist(bytes);
-      if (result && typeof result === 'object' && result['CFBundleIdentifier']) return result;
-    } catch (_) {}
-
-    // Attempt 2: bplist-parser (tốt cho IPA 32-bit cũ)
+    try { const r = parseBinaryPlist(bytes); if (r && typeof r==='object') return r; } catch(_){}
     try {
       if (window.bplistParser) {
-        const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-        const parsed = window.bplistParser.parseBuffer(ab);
-        if (parsed && parsed[0]) return parsed[0];
+        const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset+bytes.byteLength);
+        const p = window.bplistParser.parseBuffer(ab);
+        if (p && p[0]) return p[0];
       }
-    } catch (_) {}
-
-    // Attempt 3: plist.js (thử cuối)
-    try {
-      const txt = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-      const result = plist.parse(txt);
-      if (result) return result;
-    } catch (_) {}
-
-    throw new Error('Không thể parse binary plist — định dạng không được hỗ trợ.');
-
+    } catch(_){}
+    try { const r = plist.parse(new TextDecoder('utf-8',{fatal:false}).decode(bytes)); if(r) return r; } catch(_){}
+    throw new Error('Không thể parse binary plist.');
   } else {
-    // XML plist
-    // Attempt 1: tự parse bằng DOMParser
-    try {
-      const result = parseXMLPlist(new TextDecoder().decode(bytes));
-      if (result && Object.keys(result).length > 0) return result;
-    } catch (_) {}
-
-    // Attempt 2: plist.js
-    try {
-      const txt = new TextDecoder().decode(bytes);
-      const result = plist.parse(txt);
-      if (result) return result;
-    } catch (e) {
-      throw new Error('Không thể parse XML plist: ' + e.message);
-    }
+    try { const r = parseXMLPlist(new TextDecoder().decode(bytes)); if(r && Object.keys(r).length>0) return r; } catch(_){}
+    try { return plist.parse(new TextDecoder().decode(bytes)); }
+    catch(e) { throw new Error('Không thể parse XML plist: '+e.message); }
   }
 }
 
-/* ─────────────────────────────────────────────
-   BINARY PLIST PARSER (tự viết)
-   Nguồn: Code 2 — hoạt động tốt với plist hiện đại
-───────────────────────────────────────────── */
+/* ── BINARY PLIST PARSER ── */
 function parseBinaryPlist(bytes) {
-  const dv  = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const len = bytes.length;
-  const to  = len - 32;
-
-  const ois   = bytes[to + 6];
-  const ors   = bytes[to + 7];
-  const nObj  = ri64(dv, to + 8);
-  const topObj= ri64(dv, to + 16);
-  const otOff = ri64(dv, to + 24);
-
-  const offs = [];
-  for (let i = 0; i < nObj; i++) offs.push(riN(dv, otOff + i * ois, ois));
-
-  function rObj(idx) {
-    const off = offs[idx];
-    const mk  = bytes[off];
-    const hi  = (mk & 0xF0) >> 4;
-    const lo  =  mk & 0x0F;
-
-    if (mk === 0x00) return null;
-    if (mk === 0x08) return false;
-    if (mk === 0x09) return true;
-    if (hi === 0x1)  return riN(dv, off + 1, 1 << lo);
-    if (hi === 0x2)  return lo === 3 ? dv.getFloat64(off + 1, false) : dv.getFloat32(off + 1, false);
-    if (mk === 0x33) return new Date((dv.getFloat64(off + 1, false) + 978307200) * 1000).toISOString();
-    if (hi === 0x4)  { const [s] = ds(lo, off); return '[Data ' + s + ']'; }
-    if (hi === 0x5)  {
-      const [s, e] = ds(lo, off);
-      let r = '';
-      for (let i = 0; i < s; i++) r += String.fromCharCode(bytes[off + 1 + e + i]);
-      return r;
-    }
-    if (hi === 0x6)  {
-      const [s, e] = ds(lo, off);
-      let r = '';
-      for (let i = 0; i < s; i++) r += String.fromCodePoint(dv.getUint16(off + 1 + e + i * 2, false));
-      return r;
-    }
-    if (hi === 0xA)  {
-      const [s, e] = ds(lo, off);
-      const a = [];
-      for (let i = 0; i < s; i++) a.push(rObj(riN(dv, off + 1 + e + i * ors, ors)));
-      return a;
-    }
-    if (hi === 0xD)  {
-      const [s, e] = ds(lo, off);
-      const o = {};
-      for (let i = 0; i < s; i++) {
-        const k = rObj(riN(dv, off + 1 + e + i * ors, ors));
-        const v = rObj(riN(dv, off + 1 + e + (s + i) * ors, ors));
-        o[k] = v;
-      }
+  const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+  const len=bytes.length, to=len-32;
+  const ois=bytes[to+6], ors=bytes[to+7];
+  const nObj=ri64(dv,to+8), topObj=ri64(dv,to+16), otOff=ri64(dv,to+24);
+  const offs=[];
+  for(let i=0;i<nObj;i++) offs.push(riN(dv,otOff+i*ois,ois));
+  function rObj(idx){
+    const off=offs[idx],mk=bytes[off],hi=(mk&0xF0)>>4,lo=mk&0x0F;
+    if(mk===0x00)return null; if(mk===0x08)return false; if(mk===0x09)return true;
+    if(hi===0x1)return riN(dv,off+1,1<<lo);
+    if(hi===0x2)return lo===3?dv.getFloat64(off+1,false):dv.getFloat32(off+1,false);
+    if(mk===0x33)return new Date((dv.getFloat64(off+1,false)+978307200)*1000).toISOString();
+    if(hi===0x4){const[s]=ds(lo,off);return'[Data '+s+']';}
+    if(hi===0x5){const[s,e]=ds(lo,off);let r='';for(let i=0;i<s;i++)r+=String.fromCharCode(bytes[off+1+e+i]);return r;}
+    if(hi===0x6){const[s,e]=ds(lo,off);let r='';for(let i=0;i<s;i++)r+=String.fromCodePoint(dv.getUint16(off+1+e+i*2,false));return r;}
+    if(hi===0xA){const[s,e]=ds(lo,off);const a=[];for(let i=0;i<s;i++)a.push(rObj(riN(dv,off+1+e+i*ors,ors)));return a;}
+    if(hi===0xD){
+      const[s,e]=ds(lo,off);const o={};
+      for(let i=0;i<s;i++){const k=rObj(riN(dv,off+1+e+i*ors,ors));const v=rObj(riN(dv,off+1+e+(s+i)*ors,ors));o[k]=v;}
       return o;
     }
     return null;
   }
-
-  function ds(lo, off) {
-    if (lo !== 0x0F) return [lo, 0];
-    const is = 1 << (bytes[off + 1] & 0x0F);
-    return [riN(dv, off + 2, is), 1 + is];
-  }
-
+  function ds(lo,off){if(lo!==0x0F)return[lo,0];const is=1<<(bytes[off+1]&0x0F);return[riN(dv,off+2,is),1+is];}
   return rObj(topObj);
 }
+function riN(dv,off,n){let v=0;for(let i=0;i<n;i++)v=v*256+dv.getUint8(off+i);return v;}
+function ri64(dv,off){return dv.getUint32(off,false)*0x100000000+dv.getUint32(off+4,false);}
 
-function riN(dv, off, n) { let v = 0; for (let i = 0; i < n; i++) v = v * 256 + dv.getUint8(off + i); return v; }
-function ri64(dv, off)   { return dv.getUint32(off, false) * 0x100000000 + dv.getUint32(off + 4, false); }
+/* ── XML PLIST PARSER ── */
+function parseXMLPlist(text){const doc=new DOMParser().parseFromString(text,'application/xml');const root=doc.querySelector('plist > dict');return root?parseDict(root):{};}
+function parseDict(node){const o={},c=[...node.children];for(let i=0;i<c.length;i+=2)if(c[i].tagName==='key'&&c[i+1])o[c[i].textContent]=parseNode(c[i+1]);return o;}
+function parseNode(n){switch(n.tagName){case'string':return n.textContent;case'integer':return parseInt(n.textContent,10);case'real':return parseFloat(n.textContent);case'true':return true;case'false':return false;case'dict':return parseDict(n);case'array':return[...n.children].map(parseNode);default:return n.textContent;}}
 
-/* ─────────────────────────────────────────────
-   XML PLIST PARSER (tự viết)
-───────────────────────────────────────────── */
-function parseXMLPlist(text) {
-  const doc  = new DOMParser().parseFromString(text, 'application/xml');
-  const root = doc.querySelector('plist > dict');
-  return root ? parseDict(root) : {};
-}
-function parseDict(node) {
-  const o = {}, c = [...node.children];
-  for (let i = 0; i < c.length; i += 2)
-    if (c[i].tagName === 'key' && c[i + 1]) o[c[i].textContent] = parseNode(c[i + 1]);
-  return o;
-}
-function parseNode(n) {
-  switch (n.tagName) {
-    case 'string':  return n.textContent;
-    case 'integer': return parseInt(n.textContent, 10);
-    case 'real':    return parseFloat(n.textContent);
-    case 'true':    return true;
-    case 'false':   return false;
-    case 'dict':    return parseDict(n);
-    case 'array':   return [...n.children].map(parseNode);
-    default:        return n.textContent;
-  }
-}
-
-/* ─────────────────────────────────────────────
-   UI HELPERS
-───────────────────────────────────────────── */
-function set(id, val) { document.getElementById(id).textContent = val; }
-function showProgress(on) {
-  document.getElementById('progressContainer').style.display = on ? 'block' : 'none';
-  if (!on) setProgress(0);
-}
-function setProgress(v) { document.getElementById('progressBar').style.width = v + '%'; }
-function showResult(on) { document.getElementById('result').style.display = on ? 'block' : 'none'; }
-function showError(msg) {
-  const eb = document.getElementById('errorBox');
-  eb.textContent = msg;
-  eb.style.display = msg ? 'block' : 'none';
-}
-function copyVal(id) {
-  const text = document.getElementById(id).textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const t = document.getElementById('toast');
+/* ── UI HELPERS ── */
+function set(id,val){document.getElementById(id).textContent=val;}
+function showProgress(on){document.getElementById('progressContainer').style.display=on?'block':'none';if(!on)setProgress(0);}
+function setProgress(v){document.getElementById('progressBar').style.width=v+'%';}
+function showResult(on){document.getElementById('result').style.display=on?'block':'none';}
+function showError(msg){const eb=document.getElementById('errorBox');eb.textContent=msg;eb.style.display=msg?'block':'none';}
+function copyVal(id){
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+    const t=document.getElementById('toast');
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 1800);
+    setTimeout(()=>t.classList.remove('show'),1800);
   });
 }
 </script>
