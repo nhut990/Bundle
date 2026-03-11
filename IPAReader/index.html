@@ -193,21 +193,6 @@
       </div>
     </div>
     <div class="result-row">
-      <div class="result-icon icon-green">📅</div>
-      <div style="flex:1;min-width:0">
-        <div class="result-label">Ngày phát hành</div>
-        <div class="result-value"><span id="val-release">—</span></div>
-      </div>
-    </div>
-    <div class="result-row">
-      <div class="result-icon icon-purple">📲</div>
-      <div style="flex:1;min-width:0">
-        <div class="result-label">Hỗ trợ thiết bị</div>
-        <div class="result-value"><span id="val-devices">—</span></div>
-        <div style="font-size:0.75rem;color:#94a3b8;margin-top:3px;" id="val-iphone-note"></div>
-      </div>
-    </div>
-    <div class="result-row">
       <div class="result-icon icon-teal">🛒</div>
       <div style="flex:1;min-width:0">
         <div class="result-label">Item ID (App Store)</div>
@@ -294,58 +279,6 @@ async function processIPA(file) {
 
     // ── Nhà phát triển ──
     set('val-developer', meta ? (meta['artistName'] || '(không có)') : '(không có)');
-
-    // ── Ngày phát hành ──
-    const relRaw = meta ? meta['releaseDate'] : null;
-    if (relRaw) {
-      const d = new Date(relRaw);
-      const formatted = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-      set('val-release', formatted);
-    } else {
-      set('val-release', '(không có)');
-    }
-
-    // ── Hỗ trợ thiết bị ──
-    const family = info['UIDeviceFamily'] || [];
-    const caps   = info['UIRequiredDeviceCapabilities'] || [];
-    const capArr = Array.isArray(caps) ? caps : Object.keys(caps).filter(k => caps[k]);
-    const arch   = capArr.find(c => c === 'arm64') ? '64-bit' : capArr.find(c => c === 'armv7') ? '32-bit' : '';
-    let deviceStr = '';
-    if (family.includes(1) && family.includes(2)) deviceStr = 'iPhone + iPad';
-    else if (family.includes(1)) deviceStr = 'iPhone';
-    else if (family.includes(2)) deviceStr = 'iPad';
-    if (arch) deviceStr += (deviceStr ? ` (${arch})` : arch);
-    set('val-devices', deviceStr || '(không xác định)');
-
-    // Chú thích iPhone tối thiểu
-    // Mapping iOS major version → iPhone tối thiểu có thể cài
-    // Nguồn: iosref.com — dựa trên Max iOS của từng model iPhone
-    const iphoneMajorMap = {
-      1:'iPhone (gen 1)', 2:'iPhone (gen 1)', 3:'iPhone 3G',
-      4:'iPhone 3G',   // iPhone 3G max iOS 4
-      5:'iPhone 3GS',  // iPhone 3GS max iOS 6
-      6:'iPhone 3GS',
-      7:'iPhone 4',    // iPhone 4 max iOS 7
-      8:'iPhone 4s',   // iPhone 4s max iOS 9
-      9:'iPhone 4s',
-      10:'iPhone 5',   // iPhone 5 / 5c max iOS 10
-      11:'iPhone 5s',  // iPhone 5s max iOS 12
-      12:'iPhone 5s',
-      13:'iPhone 6s',  // iPhone 6s / SE gen1 / 7 max iOS 15
-      14:'iPhone 6s',
-      15:'iPhone 6s',
-      16:'iPhone 8',   // iPhone 8 / X max iOS 16
-      17:'iPhone XS',  // iPhone XS / XR max iOS 18
-      18:'iPhone XS',
-      19:'iPhone 11',  // iPhone 11+ max iOS 26+
-      26:'iPhone 11',
-    };
-    if (iosVer) {
-      const major = parseInt(iosVer.split('.')[0], 10);
-      const iphoneMin = iphoneMajorMap[major] || null;
-      const noteEl = document.getElementById('val-iphone-note');
-      noteEl.textContent = iphoneMin ? `Tương đương từ ${iphoneMin} trở lên` : '';
-    }
 
     // ── Item ID + nút App Store ──
     const itemIdEl   = document.getElementById('val-itemid');
