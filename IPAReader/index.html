@@ -160,9 +160,9 @@
 
   <div class="divider">Hoặc</div>
 
-  <!-- CÁCH 2: NHẬP LINK URL -->
+  <!-- CÁCH 2: NHẬP LINK URL (ĐÃ SỬA DÒNG GỢI Ý) -->
   <div class="url-input-group">
-    <input type="url" id="ipaUrlInput" placeholder="Dán link IPA (GitHub, v.v...)" autocomplete="off">
+    <input type="url" id="ipaUrlInput" placeholder="Dán link IPA (Chỉ hỗ trợ Direct Link)" autocomplete="off">
     <button id="btnFetchUrl" onclick="processIPAFromURL()">Đọc từ URL</button>
   </div>
 
@@ -314,7 +314,7 @@ async function processIPAFromURL() {
   const fake = startFakeProgress();
 
   try {
-    // Đã gắn sẵn link Worker hoạt động của bạn
+    // Sử dụng link Cloudflare Worker của bạn
     const proxyUrl = `https://ipa.vannhut9090.workers.dev/?url=${encodeURIComponent(ipaUrl)}`;
     const response = await fetch(proxyUrl);
 
