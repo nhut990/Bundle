@@ -51,6 +51,72 @@
   .drop-zone-text { font-size: 0.95rem; color: #64748b; }
   .drop-zone-text b { color: #007aff; }
 
+  /* Khu vực nhập link IPA */
+  .url-box {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .url-input-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .url-input {
+    width: 100%;
+    padding: 11px 36px 11px 14px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  .url-input:focus { border-color: #007aff; }
+  .clear-url-btn {
+    position: absolute;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 99px;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .clear-url-btn:hover { background: #cbd5e1; color: #111827; }
+  .clear-url-btn.show { display: inline-flex; }
+  .url-btn {
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0 18px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .url-btn:hover { background: #0062cc; }
+  .url-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+  .url-hint {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-top: 6px;
+  }
+
   .progress-container { width: 100%; background: #e5e7eb; border-radius: 8px; height: 8px; margin-top: 12px; overflow: hidden; display: none; }
   .progress-bar { width: 0%; height: 8px; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width 0.4s ease; }
 
@@ -126,6 +192,15 @@
     <div class="drop-zone-icon">📦</div>
     <div class="drop-zone-text">Kéo thả file IPA vào đây hoặc <b>nhấn để chọn</b></div>
   </div>
+
+  <div class="url-box">
+    <div class="url-input-wrap">
+      <input type="url" class="url-input" id="ipaUrl" placeholder="Dán link trực tiếp tới file .ipa (chỉ đọc mục lục & plist, không tải nguyên file)...">
+      <button type="button" class="clear-url-btn" id="btnClearUrl" title="Xóa link" onclick="clearUrlInput()">×</button>
+    </div>
+    <button class="url-btn" id="btnFetchUrl" onclick="processIPAUrl()">Đọc link</button>
+  </div>
+  <div class="url-hint">Chỉ hỗ trợ link file .IPA  Direct link (download trực tiếp)</div>
 
   <div class="progress-container" id="progressContainer">
     <div class="progress-bar" id="progressBar"></div>
@@ -223,8 +298,23 @@
 <script src="https://cdn.jsdelivr.net/npm/bplist-parser@0.3.2/dist/bplist-parser.min.js"></script>
 
 <script>
-const dropZone  = document.getElementById('drop-zone');
-const fileInput = document.getElementById('ipaFile');
+const WORKER_PROXY = "https://ipa.vannhut9090.workers.dev/?url=";
+
+const dropZone     = document.getElementById('drop-zone');
+const fileInput    = document.getElementById('ipaFile');
+const urlInput     = document.getElementById('ipaUrl');
+const btnUrl       = document.getElementById('btnFetchUrl');
+const btnClearUrl  = document.getElementById('btnClearUrl');
+
+function toggleClearUrlBtn() {
+  btnClearUrl.classList.toggle('show', urlInput.value.length > 0);
+}
+
+function clearUrlInput() {
+  urlInput.value = '';
+  toggleClearUrlBtn();
+  urlInput.focus();
+}
 
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
 dropZone.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragging'); });
@@ -234,7 +324,44 @@ dropZone.addEventListener('drop', e => {
   if (f) processIPA(f);
 });
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) processIPA(fileInput.files[0]); });
+urlInput.addEventListener('input', toggleClearUrlBtn);
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') processIPAUrl(); });
 
+function renderResult(fileName, info, meta) {
+  let itemId = null;
+  if (meta && meta['itemId'] !== undefined && meta['itemId'] !== null) {
+    itemId = String(meta['itemId']);
+  }
+
+  set('val-filename', fileName);
+  set('val-bundle',   info['CFBundleIdentifier'] || '(không có)');
+  set('val-appname',  info['CFBundleDisplayName'] || info['CFBundleName'] || '(không có)');
+  set('val-version',  info['CFBundleShortVersionString'] || info['CFBundleVersion'] || '(không có)');
+  const iosVer = info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '';
+  set('val-ios',      iosVer || '(không có)');
+  set('val-ios-note', iosVer || '?');
+
+  // Nhà phát triển
+  set('val-developer', meta ? (meta['artistName'] || '(không có)') : '(không có)');
+
+  // Item ID + nút App Store
+  const itemIdEl = document.getElementById('val-itemid');
+  const btnCopy  = document.getElementById('btn-copy-itemid');
+  const btnStore = document.getElementById('btn-appstore');
+
+  if (itemId) {
+    itemIdEl.textContent   = itemId;
+    btnCopy.style.display  = '';
+    btnStore.href          = `https://apps.apple.com/app/id${itemId}`;
+    btnStore.style.display = '';
+  } else {
+    itemIdEl.innerHTML     = '<span class="badge-notfound">Không có (IPA không qua App Store)</span>';
+    btnCopy.style.display  = 'none';
+    btnStore.style.display = 'none';
+  }
+}
+
+/* ── ĐỌC FILE IPA TRÊN MÁY ── */
 async function processIPA(file) {
   showError('');
   showResult(false);
@@ -257,44 +384,16 @@ async function processIPA(file) {
     const info = await parsePlist(infoBytes);
 
     // ── iTunesMetadata.plist → itemId ──
-    let itemId = null;
-    let meta   = null;
+    let meta = null;
     const metaPath = files.find(p => p === 'iTunesMetadata.plist');
     if (metaPath) {
       try {
         const metaBytes = await zip.file(metaPath).async('uint8array');
         meta = await parsePlist(metaBytes);
-        if (meta['itemId'] !== undefined && meta['itemId'] !== null)
-          itemId = String(meta['itemId']);
       } catch (_) {}
     }
 
-    set('val-filename', file.name);
-    set('val-bundle',   info['CFBundleIdentifier'] || '(không có)');
-    set('val-appname',  info['CFBundleDisplayName'] || info['CFBundleName'] || '(không có)');
-    set('val-version',  info['CFBundleShortVersionString'] || info['CFBundleVersion'] || '(không có)');
-    const iosVer = info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '';
-    set('val-ios',      iosVer || '(không có)');
-    set('val-ios-note', iosVer || '?');
-
-    // ── Nhà phát triển ──
-    set('val-developer', meta ? (meta['artistName'] || '(không có)') : '(không có)');
-
-    // ── Item ID + nút App Store ──
-    const itemIdEl   = document.getElementById('val-itemid');
-    const btnCopy    = document.getElementById('btn-copy-itemid');
-    const btnStore   = document.getElementById('btn-appstore');
-
-    if (itemId) {
-      itemIdEl.textContent  = itemId;
-      btnCopy.style.display = '';
-      btnStore.href         = `https://apps.apple.com/app/id${itemId}`;
-      btnStore.style.display = '';
-    } else {
-      itemIdEl.innerHTML    = '<span class="badge-notfound">Không có (IPA không qua App Store)</span>';
-      btnCopy.style.display = 'none';
-      btnStore.style.display = 'none';
-    }
+    renderResult(file.name, info, meta);
 
     clearInterval(fake); setProgress(100);
     setTimeout(() => { showProgress(false); showResult(true); }, 350);
@@ -304,6 +403,206 @@ async function processIPA(file) {
     setTimeout(() => showProgress(false), 300);
     showError('❌ Lỗi khi đọc IPA: ' + (err.message || err));
   }
+}
+
+/* ── ĐỌC QUA LINK (CHỈ ĐỌC PHẦN MỤC LỤC & PLIST, KHÔNG TẢI NGUYÊN FILE) ── */
+async function processIPAUrl() {
+  const rawUrl = urlInput.value.trim();
+  if (!rawUrl) {
+    showError('❌ Vui lòng nhập link trực tiếp tới file .ipa.');
+    return;
+  }
+
+  showError('');
+  showResult(false);
+  showProgress(true);
+  setProgress(15);
+  btnUrl.disabled = true;
+
+  try {
+    const proxiedUrl = WORKER_PROXY + encodeURIComponent(rawUrl);
+
+    // 1. Lấy tổng dung lượng file bằng Range: bytes=0-0 (chỉ xin đúng 1 byte đầu tiên)
+    const probeResp = await fetch(proxiedUrl, {
+      headers: { "Range": "bytes=0-0" }
+    });
+
+    if (probeResp.status !== 206) {
+      if (probeResp.body) await probeResp.body.cancel();
+      throw new Error(`Server trả về mã ${probeResp.status} (không hỗ trợ đọc từng phần HTTP Range).`);
+    }
+
+    const totalSize = parseTotalSizeFromContentRange(probeResp.headers.get("Content-Range"));
+    if (probeResp.body) await probeResp.body.cancel();
+
+    if (!totalSize || totalSize <= 22) {
+      throw new Error("Không xác định được dung lượng file từ Content-Range.");
+    }
+
+    setProgress(28);
+
+    // 2. Tính dải byte cuối file rõ ràng (tối đa ~64KB cuối) để tìm EOCD
+    const tailLen   = Math.min(totalSize, 65560);
+    const tailStart = totalSize - tailLen;
+    const tailEnd   = totalSize - 1;
+
+    const tailResp = await fetch(proxiedUrl, {
+      headers: { "Range": `bytes=${tailStart}-${tailEnd}` }
+    });
+
+    if (tailResp.status !== 206) {
+      if (tailResp.body) await tailResp.body.cancel();
+      throw new Error("Không đọc được phần cuối file theo dải byte.");
+    }
+
+    const tailBuf = new Uint8Array(await tailResp.arrayBuffer());
+    setProgress(48);
+
+    const eocd = findEOCD(tailBuf);
+    if (!eocd) {
+      throw new Error("Không tìm thấy mục lục ZIP ở cuối file.");
+    }
+
+    // 3. Đọc đúng đoạn Central Directory
+    const cdStart = eocd.cdOffset;
+    const cdEnd   = Math.min(totalSize - 1, cdStart + eocd.cdSize - 1);
+    const cdResp  = await fetch(proxiedUrl, {
+      headers: { "Range": `bytes=${cdStart}-${cdEnd}` }
+    });
+    if (cdResp.status !== 206) {
+      if (cdResp.body) await cdResp.body.cancel();
+      throw new Error("Không đọc được danh sách mục lục của file IPA.");
+    }
+
+    const cdBuf = new Uint8Array(await cdResp.arrayBuffer());
+    setProgress(70);
+
+    const entries = parseCentralDirectory(cdBuf);
+    const infoEntry = entries.find(e => /^Payload\/[^/]+\.app\/Info\.plist$/i.test(e.name));
+    if (!infoEntry) {
+      throw new Error("Không tìm thấy Info.plist trong gói IPA.");
+    }
+    const metaEntry = entries.find(e => e.name === "iTunesMetadata.plist");
+
+    // 4. Chỉ tải và giải nén đúng file Info.plist (và iTunesMetadata.plist nếu có)
+    const infoBytes = await extractEntryByRange(proxiedUrl, infoEntry);
+    const info = await parsePlist(infoBytes);
+    setProgress(90);
+
+    let meta = null;
+    if (metaEntry) {
+      try {
+        const metaBytes = await extractEntryByRange(proxiedUrl, metaEntry);
+        meta = await parsePlist(metaBytes);
+      } catch (_) {}
+    }
+
+    let fileName = "remote.ipa";
+    try {
+      const seg = decodeURIComponent(new URL(rawUrl).pathname.split("/").pop() || "");
+      if (seg) fileName = seg;
+    } catch (_) {}
+
+    renderResult(fileName, info, meta);
+    setProgress(100);
+    setTimeout(() => { showProgress(false); showResult(true); }, 300);
+
+  } catch (err) {
+    setProgress(0);
+    setTimeout(() => showProgress(false), 300);
+    showError("❌ Lỗi khi đọc từ link: " + (err.message || err));
+  } finally {
+    btnUrl.disabled = false;
+  }
+}
+
+function parseTotalSizeFromContentRange(rangeHeader) {
+  if (!rangeHeader) return null;
+  const match = rangeHeader.match(/\/(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function findEOCD(tailBuf) {
+  const dv = new DataView(tailBuf.buffer, tailBuf.byteOffset, tailBuf.byteLength);
+  const minPos = Math.max(0, tailBuf.length - 65557);
+  for (let i = tailBuf.length - 22; i >= minPos; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) {
+      const commentLen = dv.getUint16(i + 20, true);
+      if (i + 22 + commentLen <= tailBuf.length) {
+        const cdSize   = dv.getUint32(i + 12, true);
+        const cdOffset = dv.getUint32(i + 16, true);
+        if (cdSize !== 0xffffffff && cdOffset !== 0xffffffff) {
+          return { cdSize, cdOffset };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function parseCentralDirectory(cdBuf) {
+  const dv = new DataView(cdBuf.buffer, cdBuf.byteOffset, cdBuf.byteLength);
+  const entries = [];
+  let pos = 0;
+
+  while (pos + 46 <= cdBuf.length) {
+    if (dv.getUint32(pos, true) !== 0x02014b50) break;
+
+    const compressionMethod = dv.getUint16(pos + 10, true);
+    const compressedSize    = dv.getUint32(pos + 20, true);
+    const fileNameLen       = dv.getUint16(pos + 28, true);
+    const extraFieldLen     = dv.getUint16(pos + 30, true);
+    const commentLen        = dv.getUint16(pos + 32, true);
+    const localHeaderOffset = dv.getUint32(pos + 42, true);
+
+    const name = new TextDecoder().decode(cdBuf.subarray(pos + 46, pos + 46 + fileNameLen));
+    entries.push({ name, compressionMethod, compressedSize, localHeaderOffset });
+
+    pos += 46 + fileNameLen + extraFieldLen + commentLen;
+  }
+  return entries;
+}
+
+async function extractEntryByRange(proxiedUrl, entry) {
+  const headerStart = entry.localHeaderOffset;
+  const approxEnd   = headerStart + 30 + entry.name.length + 128 + entry.compressedSize - 1;
+
+  const resp = await fetch(proxiedUrl, {
+    headers: { "Range": `bytes=${headerStart}-${approxEnd}` }
+  });
+  if (resp.status !== 206) {
+    if (resp.body) await resp.body.cancel();
+    throw new Error(`Không lấy được dữ liệu của ${entry.name}`);
+  }
+
+  const buf = new Uint8Array(await resp.arrayBuffer());
+  const dv  = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+
+  if (dv.getUint32(0, true) !== 0x04034b50) {
+    throw new Error(`Sai cấu trúc file trong ZIP cho ${entry.name}`);
+  }
+
+  const fnLen    = dv.getUint16(26, true);
+  const extraLen = dv.getUint16(28, true);
+  const dataStart = 30 + fnLen + extraLen;
+  const compressedData = buf.subarray(dataStart, dataStart + entry.compressedSize);
+
+  if (entry.compressionMethod === 0) {
+    return compressedData;
+  }
+  if (entry.compressionMethod === 8) {
+    if (typeof DecompressionStream !== "undefined") {
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(compressedData);
+      writer.close();
+      const outBuf = await new Response(ds.readable).arrayBuffer();
+      return new Uint8Array(outBuf);
+    }
+    throw new Error("Trình duyệt không hỗ trợ giải nén Deflate.");
+  }
+
+  throw new Error(`Không hỗ trợ kiểu nén ZIP mã ${entry.compressionMethod}`);
 }
 
 /* ── PLIST DISPATCHER ── */
