@@ -33,6 +33,8 @@
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.05);
   }
+  
+  /* Vùng kéo thả file */
   .drop-zone {
     width: 100%;
     padding: 28px 16px;
@@ -50,6 +52,28 @@
   .drop-zone-icon { font-size: 2rem; margin-bottom: 8px; }
   .drop-zone-text { font-size: 0.95rem; color: #64748b; }
   .drop-zone-text b { color: #007aff; }
+
+  /* Vùng nhập Link URL */
+  .divider { text-align: center; margin: 20px 0; color: #94a3b8; font-size: 0.85rem; position: relative; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
+  .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 42%; height: 1px; background: #e2e8f0; }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+  
+  .url-input-group { display: flex; gap: 10px; }
+  .url-input-group input {
+    flex: 1; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+    min-width: 0; 
+  }
+  .url-input-group input:focus { border-color: #007aff; }
+  .url-input-group button {
+    background: #007aff; color: white; border: none; padding: 0 20px;
+    border-radius: 8px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .url-input-group button:hover { background: #0062cc; }
+  .url-input-group button:disabled { background: #93c5fd; cursor: not-allowed; }
 
   .progress-container { width: 100%; background: #e5e7eb; border-radius: 8px; height: 8px; margin-top: 12px; overflow: hidden; display: none; }
   .progress-bar { width: 0%; height: 8px; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width 0.4s ease; }
@@ -103,14 +127,20 @@
 
   .badge-notfound { font-size: 0.75rem; font-weight: 500; color: #92400e; background: #fef3c7; border-radius: 6px; padding: 2px 8px; }
 
-  .error-box { display: none; margin-top: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; color: #dc2626; font-size: 0.9rem; }
+  .error-box { display: none; margin-top: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; color: #dc2626; font-size: 0.9rem; line-height: 1.4; }
 
-  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(14px); background: #111827; color: #fff; padding: 10px 22px; border-radius: 99px; font-size: 0.85rem; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.25s; white-space: nowrap; }
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(14px); background: #111827; color: #fff; padding: 10px 22px; border-radius: 99px; font-size: 0.85rem; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.25s; white-space: nowrap; z-index: 999;}
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   footer { text-align: center; color: #777; margin: 20px 0; font-size: 0.9rem; }
   footer a { display: inline-block; margin-bottom: 5px; color: #007aff; text-decoration: none; font-weight: 600; }
   footer a:hover { text-decoration: underline; }
+
+  /* Responsive cho điện thoại nhỏ */
+  @media (max-width: 480px) {
+    .url-input-group { flex-direction: column; }
+    .url-input-group button { padding: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -121,10 +151,19 @@
 </header>
 
 <main>
+  <!-- CÁCH 1: KÉO THẢ FILE -->
   <div class="drop-zone" id="drop-zone">
     <input type="file" id="ipaFile" accept=".ipa">
     <div class="drop-zone-icon">📦</div>
     <div class="drop-zone-text">Kéo thả file IPA vào đây hoặc <b>nhấn để chọn</b></div>
+  </div>
+
+  <div class="divider">Hoặc</div>
+
+  <!-- CÁCH 2: NHẬP LINK URL -->
+  <div class="url-input-group">
+    <input type="url" id="ipaUrlInput" placeholder="Dán link IPA (GitHub, v.v...)" autocomplete="off">
+    <button id="btnFetchUrl" onclick="processIPAFromURL()">Đọc từ URL</button>
   </div>
 
   <div class="progress-container" id="progressContainer">
@@ -225,40 +264,94 @@
 <script>
 const dropZone  = document.getElementById('drop-zone');
 const fileInput = document.getElementById('ipaFile');
+const urlInput  = document.getElementById('ipaUrlInput');
+const btnFetch  = document.getElementById('btnFetchUrl');
 
+// Xử lý kéo thả file offline
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
 dropZone.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragging'); });
 dropZone.addEventListener('drop', e => {
   e.preventDefault(); dropZone.classList.remove('dragging');
   const f = e.dataTransfer.files[0];
-  if (f) processIPA(f);
+  if (f) processIPAFile(f);
 });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) processIPA(fileInput.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) processIPAFile(fileInput.files[0]); });
 
-async function processIPA(file) {
+// Bắt sự kiện nhấn Enter ở ô nhập link
+urlInput.addEventListener('keypress', e => {
+  if (e.key === 'Enter') processIPAFromURL();
+});
+
+// ── LUỒNG 1: ĐỌC TỪ FILE OFFLINE ──
+async function processIPAFile(file) {
   showError('');
   showResult(false);
   showProgress(true);
 
-  let progress = 0;
-  const fake = setInterval(() => {
-    if (progress < 88) { progress += 8; setProgress(progress); }
-  }, 130);
+  const fake = startFakeProgress();
 
   try {
-    const buf   = await file.arrayBuffer();
-    const zip   = await JSZip.loadAsync(buf);
+    const buf = await file.arrayBuffer();
+    await parseIPAData(buf, file.name);
+  } catch (err) {
+    handleError(err, 'Lỗi khi đọc file IPA: ');
+  }
+}
+
+// ── LUỒNG 2: ĐỌC TỪ LINK URL QUA CLOUDFLARE WORKER ──
+async function processIPAFromURL() {
+  const ipaUrl = urlInput.value.trim();
+  if (!ipaUrl) {
+    showError('Vui lòng dán link IPA vào ô trống.');
+    return;
+  }
+
+  showError('');
+  showResult(false);
+  showProgress(true);
+  
+  btnFetch.disabled = true;
+  const fake = startFakeProgress();
+
+  try {
+    // Đã gắn sẵn link Worker hoạt động của bạn
+    const proxyUrl = `https://ipa.vannhut9090.workers.dev/?url=${encodeURIComponent(ipaUrl)}`;
+    const response = await fetch(proxyUrl);
+
+    if (!response.ok) {
+      throw new Error(`Máy chủ proxy trả về mã lỗi HTTP ${response.status}.`);
+    }
+
+    const buf = await response.arrayBuffer();
+    let filename = ipaUrl.split('/').pop().split('?')[0] || 'Unknown.ipa';
+    await parseIPAData(buf, filename);
+
+  } catch (err) {
+    if (err instanceof TypeError) {
+      handleError(err, 'Lỗi mạng/CORS. Chi tiết: ');
+    } else {
+      handleError(err, 'Lỗi khi tải IPA từ URL: ');
+    }
+  } finally {
+    btnFetch.disabled = false;
+  }
+}
+
+// ── HÀM LÕI: XỬ LÝ DỮ LIỆU IPA (Dùng chung cho cả 2 luồng) ──
+async function parseIPAData(buf, filename) {
+  try {
+    const zip = await JSZip.loadAsync(buf);
     const files = Object.keys(zip.files);
 
-    // ── Info.plist ──
+    // 1. Tìm Info.plist
     const infoPath = files.find(p => /^Payload\/[^/]+\.app\/Info\.plist$/i.test(p));
     if (!infoPath) throw new Error('Không tìm thấy Info.plist trong gói IPA.');
     const infoBytes = await zip.file(infoPath).async('uint8array');
     const info = await parsePlist(infoBytes);
 
-    // ── iTunesMetadata.plist → itemId ──
+    // 2. Tìm iTunesMetadata.plist (lấy thông tin App Store)
     let itemId = null;
-    let meta   = null;
+    let meta = null;
     const metaPath = files.find(p => p === 'iTunesMetadata.plist');
     if (metaPath) {
       try {
@@ -269,21 +362,21 @@ async function processIPA(file) {
       } catch (_) {}
     }
 
-    set('val-filename', file.name);
+    // 3. Đổ dữ liệu ra UI
+    set('val-filename', filename);
     set('val-bundle',   info['CFBundleIdentifier'] || '(không có)');
     set('val-appname',  info['CFBundleDisplayName'] || info['CFBundleName'] || '(không có)');
     set('val-version',  info['CFBundleShortVersionString'] || info['CFBundleVersion'] || '(không có)');
+    
     const iosVer = info['MinimumOSVersion'] || info['LSMinimumSystemVersion'] || '';
     set('val-ios',      iosVer || '(không có)');
     set('val-ios-note', iosVer || '?');
-
-    // ── Nhà phát triển ──
     set('val-developer', meta ? (meta['artistName'] || '(không có)') : '(không có)');
 
-    // ── Item ID + nút App Store ──
-    const itemIdEl   = document.getElementById('val-itemid');
-    const btnCopy    = document.getElementById('btn-copy-itemid');
-    const btnStore   = document.getElementById('btn-appstore');
+    // 4. Nút App Store
+    const itemIdEl = document.getElementById('val-itemid');
+    const btnCopy  = document.getElementById('btn-copy-itemid');
+    const btnStore = document.getElementById('btn-appstore');
 
     if (itemId) {
       itemIdEl.textContent  = itemId;
@@ -296,17 +389,16 @@ async function processIPA(file) {
       btnStore.style.display = 'none';
     }
 
-    clearInterval(fake); setProgress(100);
-    setTimeout(() => { showProgress(false); showResult(true); }, 350);
+    // 5. Hoàn tất
+    finishProgress();
+    showResult(true);
 
   } catch (err) {
-    clearInterval(fake); setProgress(0);
-    setTimeout(() => showProgress(false), 300);
-    showError('❌ Lỗi khi đọc IPA: ' + (err.message || err));
+    throw err;
   }
 }
 
-/* ── PLIST DISPATCHER ── */
+/* ── PLIST PARSER LOGIC ── */
 async function parsePlist(bytes) {
   const isBinary = bytes[0]===0x62 && bytes[1]===0x70 && bytes[2]===0x6c && bytes[3]===0x69;
   if (isBinary) {
@@ -327,7 +419,6 @@ async function parsePlist(bytes) {
   }
 }
 
-/* ── BINARY PLIST PARSER ── */
 function parseBinaryPlist(bytes) {
   const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
   const len=bytes.length, to=len-32;
@@ -358,22 +449,48 @@ function parseBinaryPlist(bytes) {
 function riN(dv,off,n){let v=0;for(let i=0;i<n;i++)v=v*256+dv.getUint8(off+i);return v;}
 function ri64(dv,off){return dv.getUint32(off,false)*0x100000000+dv.getUint32(off+4,false);}
 
-/* ── XML PLIST PARSER ── */
 function parseXMLPlist(text){const doc=new DOMParser().parseFromString(text,'application/xml');const root=doc.querySelector('plist > dict');return root?parseDict(root):{};}
 function parseDict(node){const o={},c=[...node.children];for(let i=0;i<c.length;i+=2)if(c[i].tagName==='key'&&c[i+1])o[c[i].textContent]=parseNode(c[i+1]);return o;}
 function parseNode(n){switch(n.tagName){case'string':return n.textContent;case'integer':return parseInt(n.textContent,10);case'real':return parseFloat(n.textContent);case'true':return true;case'false':return false;case'dict':return parseDict(n);case'array':return[...n.children].map(parseNode);default:return n.textContent;}}
 
-/* ── UI HELPERS ── */
+/* ── UI HELPERS & TRẠNG THÁI ── */
+let progressInterval = null;
+
+function startFakeProgress() {
+  let progress = 0;
+  setProgress(0);
+  progressInterval = setInterval(() => {
+    if (progress < 88) { progress += 5; setProgress(progress); }
+  }, 150);
+  return progressInterval;
+}
+
+function finishProgress() {
+  clearInterval(progressInterval);
+  setProgress(100);
+  setTimeout(() => { showProgress(false); setProgress(0); }, 400);
+}
+
+function handleError(err, prefix) {
+  clearInterval(progressInterval); 
+  setProgress(0);
+  setTimeout(() => showProgress(false), 300);
+  showError('❌ ' + prefix + (err.message || err));
+}
+
 function set(id,val){document.getElementById(id).textContent=val;}
-function showProgress(on){document.getElementById('progressContainer').style.display=on?'block':'none';if(!on)setProgress(0);}
+function showProgress(on){document.getElementById('progressContainer').style.display=on?'block':'none';}
 function setProgress(v){document.getElementById('progressBar').style.width=v+'%';}
 function showResult(on){document.getElementById('result').style.display=on?'block':'none';}
 function showError(msg){const eb=document.getElementById('errorBox');eb.textContent=msg;eb.style.display=msg?'block':'none';}
 function copyVal(id){
-  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+  const textToCopy = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(textToCopy).then(()=>{
     const t=document.getElementById('toast');
     t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'),1800);
+  }).catch(() => {
+    alert('Không thể sao chép. Vui lòng copy thủ công.');
   });
 }
 </script>
