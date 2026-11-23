@@ -140,6 +140,7 @@
   .icon-orange { background: #ffedd5; }
   .icon-pink   { background: #fce7f3; }
   .icon-teal   { background: #ccfbf1; }
+  .icon-indigo { background: #e0e7ff; }
   .result-label { font-size: 0.78rem; color: #007aff; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
   .result-value { font-size: 0.97rem; font-weight: 600; color: #111827; word-break: break-all; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .copy-btn { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; transition: color 0.15s, background 0.15s; flex-shrink: 0; }
@@ -268,6 +269,16 @@
       </div>
     </div>
     <div class="result-row">
+      <div class="result-icon icon-indigo">🍎</div>
+      <div style="flex:1;min-width:0">
+        <div class="result-label">Apple ID (Tài khoản tải)</div>
+        <div class="result-value">
+          <span id="val-appleid">—</span>
+          <button class="copy-btn" id="btn-copy-appleid" onclick="copyVal('val-appleid')" style="display:none">📋</button>
+        </div>
+      </div>
+    </div>
+    <div class="result-row">
       <div class="result-icon icon-teal">🛒</div>
       <div style="flex:1;min-width:0">
         <div class="result-label">Item ID (App Store)</div>
@@ -327,11 +338,27 @@ fileInput.addEventListener('change', () => { if (fileInput.files[0]) processIPA(
 urlInput.addEventListener('input', toggleClearUrlBtn);
 urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') processIPAUrl(); });
 
+function extractAppleId(meta) {
+  if (!meta || typeof meta !== 'object') return null;
+  if (meta['apple-id']) return String(meta['apple-id']).trim();
+  if (meta['appleId']) return String(meta['appleId']).trim();
+  const dlInfo = meta['com.apple.iTunesStore.downloadInfo'];
+  if (dlInfo && typeof dlInfo === 'object') {
+    const accInfo = dlInfo['accountInfo'];
+    if (accInfo && typeof accInfo === 'object' && accInfo['AppleID']) {
+      return String(accInfo['AppleID']).trim();
+    }
+  }
+  return null;
+}
+
 function renderResult(fileName, info, meta) {
   let itemId = null;
   if (meta && meta['itemId'] !== undefined && meta['itemId'] !== null) {
     itemId = String(meta['itemId']);
   }
+
+  const appleId = extractAppleId(meta);
 
   set('val-filename', fileName);
   set('val-bundle',   info['CFBundleIdentifier'] || '(không có)');
@@ -343,6 +370,17 @@ function renderResult(fileName, info, meta) {
 
   // Nhà phát triển
   set('val-developer', meta ? (meta['artistName'] || '(không có)') : '(không có)');
+
+  // Apple ID (từ iTunesMetadata.plist)
+  const appleIdEl      = document.getElementById('val-appleid');
+  const btnCopyAppleId = document.getElementById('btn-copy-appleid');
+  if (appleId) {
+    appleIdEl.textContent        = appleId;
+    btnCopyAppleId.style.display = '';
+  } else {
+    appleIdEl.innerHTML          = '<span class="badge-notfound">Không có (IPA không qua App Store)</span>';
+    btnCopyAppleId.style.display = 'none';
+  }
 
   // Item ID + nút App Store
   const itemIdEl = document.getElementById('val-itemid');
@@ -383,9 +421,9 @@ async function processIPA(file) {
     const infoBytes = await zip.file(infoPath).async('uint8array');
     const info = await parsePlist(infoBytes);
 
-    // ── iTunesMetadata.plist → itemId ──
+    // ── iTunesMetadata.plist → itemId, appleId ──
     let meta = null;
-    const metaPath = files.find(p => p === 'iTunesMetadata.plist');
+    const metaPath = files.find(p => /^iTunesMetadata\.plist$/i.test(p));
     if (metaPath) {
       try {
         const metaBytes = await zip.file(metaPath).async('uint8array');
@@ -482,7 +520,7 @@ async function processIPAUrl() {
     if (!infoEntry) {
       throw new Error("Không tìm thấy Info.plist trong gói IPA.");
     }
-    const metaEntry = entries.find(e => e.name === "iTunesMetadata.plist");
+    const metaEntry = entries.find(e => /^iTunesMetadata\.plist$/i.test(e.name));
 
     // 4. Chỉ tải và giải nén đúng file Info.plist (và iTunesMetadata.plist nếu có)
     const infoBytes = await extractEntryByRange(proxiedUrl, infoEntry);
